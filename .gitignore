@@ -1,3 +1,4 @@
 .env
 .idea
 *.pyc
+agent/__pycache__/*.*.pyc
