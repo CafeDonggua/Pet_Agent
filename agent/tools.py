@@ -1,5 +1,6 @@
 # tools.py
 from typing import Optional
+from context import global_state
 
 def none(self) -> str:
     """
@@ -26,7 +27,7 @@ def check_temp(self) -> str:
     Returns:
       str: 當前室內溫度（例如：'目前室內溫度為 28°C'）。
     """
-    return "目前室內溫度為 28°C"
+    return "目前室內溫度為 {global_state.temp}"
 
 
 def adjust_aircon(target_temp: int) -> str:

@@ -2,8 +2,9 @@
 from agent.agent_init import init_agent
 from agent.tools import get_toolkit
 from agent.utils import load_input_json,get_latest_data, store_agent_response
-from datetime import datetime
 import time
+from agent.context import global_state
+
 
 def main():
     # 1. 讀入 JSON 輸入
@@ -22,6 +23,8 @@ def main():
 
             # 4. 執行 Agent 並處理新資料
             for data in new_data:
+                if "室溫" in data:
+                    global_state.temp = data["室溫"]
                 response = agent.invoke({"input": data})
 
                 # 5. 儲存結果或進一步通知
