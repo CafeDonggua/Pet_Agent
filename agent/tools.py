@@ -1,6 +1,10 @@
 # tools.py
 from typing import Optional
 
+def none(self) -> str:
+    """
+    不用動作
+    """
 
 def switch_status(new_status: str) -> str:
     """
@@ -89,6 +93,7 @@ def record_event(event: str) -> str:
 
 def get_toolkit():
     return [
+        none,
         switch_status,
         check_temp,
         adjust_aircon,
