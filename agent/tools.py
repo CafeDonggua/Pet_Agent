@@ -1,58 +1,100 @@
-from langchain_community.tools import tool
-from datetime import datetime
+# tools.py
 
-temp = 28
-last_feed_time = None
+from typing import Optional
 
-@tool
-def notify_owner() -> str:
-  """通知寵物的飼主"""
-  print("已通知主人0")
-  return "已通知主人"
 
-@tool
-def advise_see_doctor() -> str:
-  """建議飼主帶寵物就醫"""
-  return "建議就醫，請盡快安排看診"
-
-@tool
-def turn_on_ac() -> str:
-  """開冷氣並降低溫度"""
-  global temp
-  temp -= 2
-  return f"開冷氣 → 降低溫度，目前溫度：{temp}"
-
-@tool
-def feed_pet() -> str:
-  """餵食寵物並記錄時間"""
-  global last_feed_time
-  last_feed_time = datetime.now()
-  return f"餵食 → 記錄餵食時間：{last_feed_time.strftime('%Y-%m-%d %H:%M:%S')}"
-
-@tool
-def set_petcare_status(status: str) -> str:
-  """根據建議模式切換寵物照護狀態：一般 / 觀察 / 緊急"""
-  if status == "緊急":
-    return "已切換至緊急模式，請立即通知飼主並建議就醫。"
-  elif status == "觀察":
-    return "已切換至觀察模式，請定期記錄並提醒飼主注意。"
-  elif status == "一般":
-    return "已切換至一般模式，持續進行日常監控。"
-  else:
-    return f"無效的模式：{status}"
-
-@tool
-def analyze_behavior(task: str) -> dict:
+def switch_status(new_status: str) -> str:
     """
-    分析異常行為，返回可能原因和建議。
+    更改目前的預警狀態。
+
+    Args:
+      new_status (str): 目標狀態，應為 '一般'、'觀察' 或 '緊急'。
+
+    Returns:
+      str: 狀態更改結果回應。
     """
-    # 模擬分析過程
-    analysis = {
-        "task": task,
-        "建議模式": "觀察",  # 可根據行為設定「一般」/「觀察」/「緊急」
-        "可能原因": "耳朵發炎或過敏",
-        "應對方案": "觀察並避免過度抓撓",
-        "是否需通知飼主": True,
-        "是否建議就醫": False
-    }
-    return analysis
+    return f"已將狀態切換為 {new_status}"
+
+
+def check_temp() -> str:
+    """
+    確認目前的室內溫度。
+
+    Returns:
+      str: 當前室內溫度（例如：'目前室內溫度為 28°C'）。
+    """
+    return "目前室內溫度為 28°C"
+
+
+def adjust_aircon(target_temp: int) -> str:
+    """
+    調整冷氣的溫度。
+
+    Args:
+      target_temp (int): 目標冷氣溫度（°C）。
+
+    Returns:
+      str: 調整結果。
+    """
+    return f"已將冷氣調整至 {target_temp}°C"
+
+
+def start_feeder() -> str:
+    """
+    啟動餵食機器，讓狗狗進食。
+
+    Returns:
+      str: 執行結果說明。
+    """
+    return "已啟動餵食機器"
+
+
+def notify_vet(message: Optional[str] = None) -> str:
+    """
+    通知獸醫狗狗可能出現緊急狀況。
+
+    Args:
+      message (Optional[str]): 傳送給獸醫的附加訊息。
+
+    Returns:
+      str: 通知回應。
+    """
+    return f"已通知獸醫：{message or '狗狗出現異常狀況，請盡快確認'}"
+
+
+def notify_owner(message: Optional[str] = None) -> str:
+    """
+    通知主人目前狗狗的異常或處理狀況。
+
+    Args:
+      message (Optional[str]): 傳送給主人的訊息。
+
+    Returns:
+      str: 通知回應。
+    """
+    return f"已通知主人：{message or '狗狗可能需要關注'}"
+
+
+def record_event(event: str) -> str:
+    """
+    記錄新的異常行為。
+
+    Args:
+      event (str): 描述要記錄的異常行為。
+
+    Returns:
+      str: 記錄結果。
+    """
+    return f"已記錄異常行為：{event}"
+
+
+def get_toolkit():
+    return [
+        switch_status,
+        check_temp,
+        adjust_aircon,
+        start_feeder,
+        notify_vet,
+        notify_owner,
+        record_event,
+    ]

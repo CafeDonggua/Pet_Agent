@@ -1,62 +1,62 @@
+# agent_core.py
+
 import json
-from datetime import datetime
-from agent.utils import parse_llm_response
+from typing import Dict
 
-def read_log(self, log, tools):
-  self.pet_state = log
-  self.behavior_log.append(log)
-  behavior = log.get("行為")
 
-  if behavior in self.known_behaviors:
-    self.handle_abnormal_behavior(behavior)
-  else:
-    result = self.agent_executor.invoke({"task": behavior},tools=tools,)
+class PetCareAgent:
+    def __init__(self, agent_executor):
+        """
+        初始化 PetCareAgent。
 
-    try:
-      # 解析 LLM 回應
-      action_data = parse_llm_response(result)
-      # 執行 LLM 回應的動作
-      self._execute_response(action_data)
-    except Exception as e:
-      print("⚠️ LLM 回應解析失敗：", e)
-      print("原始回應：", result)
+        Args:
+          agent_executor: 由 LangChain 建立的可執行 agent。
+        """
+        self.agent = agent_executor
+        self.memory = []  # 簡易記憶模擬（可改為向量記憶等）
 
-def handle_abnormal_behavior(self, behavior):
-  result = self.chain.invoke({"task": behavior})
-  try:
-    data = json.loads(result)
-  except json.JSONDecodeError:
-    print("解析失敗：", result)
-    return
+    def run(self, input_json: Dict) -> Dict:
+        """
+        執行一次推論與工具使用，根據輸入做出建議並回傳行動摘要。
 
-  self._execute_response(data)
-  self.status = data.get("建議模式", self.status)
-  self.abnormal_behaviors[datetime.now().strftime("%H:%M:%S")] = data
+        Args:
+          input_json (Dict): 包含時間、狀態、狗狗行為與地點。
 
-def _execute_response(self, action_data):
-  if action_data.get("是否需通知飼主"):
-    print("已通知主人")
+        Returns:
+          Dict: Agent 執行後的應對建議與工具操作紀錄。
+        """
+        prompt = self._build_prompt(input_json)
+        result = self.agent.run(prompt)
 
-  if action_data.get("是否建議就醫"):
-    print("建議就醫，請盡快安排看診")
+        # 更新記憶
+        self.memory.append({
+            "input": input_json,
+            "response": result
+        })
 
-  response = action_data.get("應對方案", "")
+        return {
+            "input": input_json,
+            "agent_response": result
+        }
 
-  if "開冷氣" in response:
-    self.temp -= 2
-    print(f"執行動作：開冷氣 → 降低溫度，目前溫度：{self.temp}")
+    def _build_prompt(self, input_json: Dict) -> str:
+        """
+        建構給 Agent 的描述性任務指令。
 
-  if "餵食" in response:
-    self.last_feed_time = datetime.now()
-    print(f"執行動作：餵食 → 記錄餵食時間：{self.last_feed_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        Args:
+          input_json (Dict): 來源輸入資料。
 
-def daily_review(self):
-  if self.last_review_date == datetime.now().date():
-    return  # 當天已經回顧過
+        Returns:
+          str: 完整的語意描述提示。
+        """
+        time = input_json.get("時間", "未知")
+        level = input_json.get("狀態", "一般")
+        status = input_json.get("狗狗狀態", "未知")
+        location = input_json.get("地點", "未知")
 
-  print("\n🐾 每日總結（異常行為）")
-  for time, log in self.abnormal_behaviors.items():
-    print(f"{time} → {log['task']}（模式：{log['建議模式']}）")
-
-  self.abnormal_behaviors.clear()
-  self.last_review_date = datetime.now().date()
+        return (
+            f"現在是 {time}，狗狗目前在 {location}。"
+            f"狀態等級為「{level}」，牠現在的樣子是「{status}」。"
+            f"請根據目前狀況評估並使用必要的工具（如通知主人、記錄異常等）。"
+            f"請輸出你的處理建議與採取的工具行動。"
+        )

@@ -1,12 +1,32 @@
-import json
+# utils.py
 
-def parse_llm_response(response):
-  """解析 LLM 回應，支援 AIMessage、str 或 dict"""
-  if hasattr(response, 'content'):
-    return json.loads(response.content)
-  elif isinstance(response, str):
-    return json.loads(response)
-  elif isinstance(response, dict):
-    return response
-  else:
-    raise ValueError(f"無法解析的回應類型：{type(response)}")
+import json
+from typing import Dict
+from pathlib import Path
+
+
+def load_input_json(path: str) -> Dict:
+    """
+    從指定路徑讀取 JSON 格式的輸入資料。
+
+    Args:
+      path (str): 檔案路徑。
+
+    Returns:
+      Dict: 解析後的 JSON 資料。
+    """
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def store_agent_response(response: Dict, output_path: str) -> None:
+    """
+    將 Agent 的回應儲存為 JSON 檔。
+
+    Args:
+      response (Dict): Agent 回傳的字典資料。
+      output_path (str): 儲存檔案的路徑。
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(response, f, ensure_ascii=False, indent=2)
