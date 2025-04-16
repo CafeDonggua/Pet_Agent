@@ -1,5 +1,4 @@
 # tools.py
-
 from typing import Optional
 
 
@@ -16,7 +15,7 @@ def switch_status(new_status: str) -> str:
     return f"已將狀態切換為 {new_status}"
 
 
-def check_temp() -> str:
+def check_temp(self) -> str:
     """
     確認目前的室內溫度。
 
