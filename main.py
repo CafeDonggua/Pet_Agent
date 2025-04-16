@@ -7,7 +7,7 @@ from agent.utils import load_input_json, store_agent_response
 def main():
     # 1. 讀入 JSON 輸入
     input_data = load_input_json("./input/sample.json")
-
+    output_path = "./output/response.json"
     # 2. 初始化工具與 Agent
     toolkit = get_toolkit()
     agent = init_agent(toolkit)
@@ -16,7 +16,7 @@ def main():
     response = agent.invoke({"input": input_data})
 
     # 4. 儲存結果或進一步通知
-    store_agent_response(response)
+    store_agent_response(response, output_path)
 
 
 if __name__ == "__main__":
