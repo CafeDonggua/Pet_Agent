@@ -1,6 +1,6 @@
 # tools.py
 from typing import Optional
-from context import global_state
+from agent.context import global_state
 
 def none(self) -> str:
     """
