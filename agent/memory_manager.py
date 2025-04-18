@@ -57,3 +57,5 @@ class MemoryManager:
 
   def is_behavior_excluded(self, behavior: str) -> bool:
     return behavior in self.memory.get("excluded_behaviors", [])
+
+memory = MemoryManager()
