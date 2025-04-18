@@ -2,7 +2,7 @@
 
 import json
 from typing import Dict
-
+from agent.memory_manager import memory
 
 class PetCareAgent:
     def __init__(self, agent_executor):
@@ -13,7 +13,55 @@ class PetCareAgent:
           agent_executor: 由 LangChain 建立的可執行 agent。
         """
         self.agent = agent_executor
-        self.memory = []  # 簡易記憶模擬（可改為向量記憶等）
+        self.memory = memory  # 使用 Singleton 的 memory 管理
+        self.state = memory.get_current_state()  # 初始時讀取當前狀態
+        self.event_log = []  # 這裡是用來記錄事件的，可以根據需求擴展
+
+    def process_input(self, input_data: dict) -> str:
+        """
+        根據輸入資料進行推理與決策。
+
+        Args:
+          input_data (dict): 包含時間、等級、狗狗狀態與地點的 JSON 物件。
+
+        Returns:
+          str: 處理結果的摘要建議。
+        """
+        # 擷取關鍵欄位
+        time = input_data.get("時間")
+        level = input_data.get("等級")
+        status = input_data.get("狀態")
+        location = input_data.get("地點")
+
+        # 設定 action 和 effectiveness
+        action = ""
+        effectiveness = "有效"
+
+        # 檢查是否為排除行為
+        if memory.is_behavior_excluded(status):
+            return f"忽略排除的行為：{status}"
+
+        # 建立事件記錄
+        event = {
+            "時間": time,
+            "等級": level,
+            "狀態": status,
+            "地點": location,
+            "應對": "尚未決策"
+        }
+        self.memory.record_event(event, action, effectiveness)
+
+        # 根據目前模式決定行動
+        current_state = self.memory.get_current_state()
+
+        if level == "緊急":
+            response = "偵測到緊急狀況，請立即通知主人或聯絡獸醫。"
+        elif level == "觀察":
+            response = "建議進一步觀察狀況，視情況調整空調或切換狀態。"
+        else:
+            response = "目前為一般狀況，無需特殊處理。"
+
+        return f"[{current_state}] {response}"
 
     def run(self, input_json: Dict) -> Dict:
         """
