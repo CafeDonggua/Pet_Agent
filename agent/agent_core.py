@@ -35,7 +35,8 @@ class PetCareAgent:
 
         # 設定 action 和 effectiveness
         action = ""
-        effectiveness = "有效"
+        # TODO: 等回饋機制整合後替換為正式版本
+        effectiveness = "待觀察"
 
         # 檢查是否為排除行為
         if memory.is_behavior_excluded(status):
