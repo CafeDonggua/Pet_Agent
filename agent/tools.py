@@ -1,11 +1,24 @@
 # tools.py
 from typing import Optional
 from agent.context import global_state
+from agent.memory_manager import memory
+
 
 def none(self) -> str:
     """
     不用動作
     """
+
+
+def check_current_state() -> str:
+    """
+    回傳目前的系統狀態。
+
+    Returns:
+      str: 狀態描述（例如：'目前狀態為觀察模式'）。
+    """
+    return f"目前狀態為 {memory.get_current_state()} 模式"
+
 
 def switch_status(new_status: str) -> str:
     """
@@ -17,6 +30,7 @@ def switch_status(new_status: str) -> str:
     Returns:
       str: 狀態更改結果回應。
     """
+    memory.update_state(memory.new_state)
     return f"已將狀態切換為 {new_status}"
 
 
