@@ -20,11 +20,14 @@ def init_agent(tools: list):
     """
     load_dotenv(Path("..\\.env"))
     load_dotenv(find_dotenv())
+    chat_key = os.getenv("OPENAI_CHAT_KEY")
+    chat_model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+
     # 使用 GPT-4o 模型
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
+        model=chat_model,
         temperature=0,
-        api_key=os.environ["OPENAI_API_KEY"]
+        api_key=chat_key
     )
 
     # 將工具轉換為 LangChain 的 Tool 實例
