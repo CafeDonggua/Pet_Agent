@@ -1,5 +1,5 @@
 from langchain.memory import ConversationSummaryBufferMemory
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from agent.vector_memory import VectorMemory
 from dotenv import load_dotenv
 import os
@@ -7,7 +7,9 @@ import os
 class SummaryMemory:
     def __init__(self):
         load_dotenv()
-        self.llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=os.getenv("OPENAI_API_KEY"))
+        key = os.getenv("OPENAI_CHAT_KEY")
+        model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+        self.llm = ChatOpenAI(temperature=0, model=model, api_key=key)
         self.memory = ConversationSummaryBufferMemory(llm=self.llm, max_token_limit=500)
         self.vector_memory = VectorMemory()  # 初始化向量記憶模組
 
