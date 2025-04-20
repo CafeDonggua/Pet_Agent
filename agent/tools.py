@@ -2,6 +2,8 @@
 from typing import Optional
 from agent.context import global_state
 from agent.memory_manager import memory
+from agent.vector_memory import VectorMemory
+from agent.summary_memory import SummaryMemory
 
 
 def none(self) -> str:
@@ -105,6 +107,37 @@ def record_event(event: str) -> str:
     """
     return f"已記錄異常行為：{event}"
 
+def search_vector_memory(query: str) -> str:
+    """
+    查詢向量記憶資料庫，找出最相關的記憶內容。
+
+    Args:
+        query (str): 查詢的關鍵字或句子
+
+    Returns:
+        str: 匹配的記憶內容（文字格式）
+    """
+    vm = VectorMemory()
+    results = vm.query_memory(query)
+    if not results:
+        return "找不到相關記憶。"
+    return "\n".join([f"[距離: {r['distance']:.4f}] {r['text']}" for r in results])
+
+def search_summary_memory(query: str) -> str:
+    """
+    查詢摘要記憶資料庫，找出與摘要最相關的內容。
+
+    Args:
+        query (str): 查詢的關鍵字或句子
+
+    Returns:
+        str: 匹配的摘要內容（文字格式）
+    """
+    sm = SummaryMemory()
+    results = sm.query_summaries(query)
+    if not results:
+        return "找不到相關摘要記憶。"
+    return "\n".join([f"[距離: {r['distance']:.4f}] {r['text']}" for r in results])
 
 def get_toolkit():
     return [
@@ -116,4 +149,6 @@ def get_toolkit():
         notify_vet,
         notify_owner,
         record_event,
+        search_vector_memory,
+        search_summary_memory,
     ]
