@@ -35,7 +35,7 @@ def main():
                     global_state.temp = data["室溫"]
 
                 # 使用 AgentCore 處理邏輯決策
-                reasoning_result = core.process_input(data)
+                reasoning_result = core.run(data)
                 # 使用 LLM Agent 處理自然語言輸出
                 response = agent.invoke({"input": data})
 
@@ -52,6 +52,8 @@ def main():
 
             # 6. 每 3 秒檢查一次
             time.sleep(3)
+            core.memory.vector_memory.save()
+            # 在此時進行儲存
 
 
 if __name__ == "__main__":

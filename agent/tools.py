@@ -2,7 +2,7 @@
 from typing import Optional
 from agent.context import global_state
 from agent.memory_manager import memory
-from agent.vector_memory import VectorMemory
+from agent.singleton_memory import vector_memory_instance
 from agent.summary_memory import SummaryMemory
 
 
@@ -117,7 +117,7 @@ def search_vector_memory(query: str) -> str:
     Returns:
         str: 匹配的記憶內容（文字格式）
     """
-    vm = VectorMemory()
+    vm = vector_memory_instance
     results = vm.query_memory(query)
     if not results:
         return "找不到相關記憶。"

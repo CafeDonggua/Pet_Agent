@@ -16,55 +16,8 @@ class PetCareAgent:
         self.agent = agent_executor
         self.memory = memory  # 使用 Singleton 的 memory 管理
         self.summary_memory = SummaryMemory()  # 專責對話摘要與向量儲存
-        self.state = memory.get_current_state()  # 初始時讀取當前狀態
+        self.state = self.memory.get_current_state()  # 初始時讀取當前狀態
         self.event_log = []  # 這裡是用來記錄事件的，可以根據需求擴展
-
-    def process_input(self, input_data: dict) -> str:
-        """
-        根據輸入資料進行推理與決策。
-
-        Args:
-          input_data (dict): 包含時間、等級、狗狗狀態與地點的 JSON 物件。
-
-        Returns:
-          str: 處理結果的摘要建議。
-        """
-        # 擷取關鍵欄位
-        time = input_data.get("時間")
-        level = input_data.get("等級")
-        status = input_data.get("狀態")
-        location = input_data.get("地點")
-
-        # 設定 action 和 effectiveness
-        action = ""
-        # TODO: 等回饋機制整合後替換為正式版本
-        effectiveness = "待觀察"
-
-        # 檢查是否為排除行為
-        if memory.is_behavior_excluded(status):
-            return f"忽略排除的行為：{status}"
-
-        # 建立事件記錄
-        event = {
-            "時間": time,
-            "等級": level,
-            "狀態": status,
-            "地點": location,
-            "應對": "尚未決策"
-        }
-        self.memory.record_event(event, action, effectiveness)
-
-        # 根據目前模式決定行動
-        current_state = self.memory.get_current_state()
-
-        if level == "緊急":
-            response = "偵測到緊急狀況，請立即通知主人或聯絡獸醫。"
-        elif level == "觀察":
-            response = "建議進一步觀察狀況，視情況調整空調或切換狀態。"
-        else:
-            response = "目前為一般狀況，無需特殊處理。"
-
-        return f"[{current_state}] {response}"
 
     def run(self, input_json: Dict) -> Dict:
         """
@@ -76,28 +29,43 @@ class PetCareAgent:
         Returns:
           Dict: Agent 執行後的應對建議與工具操作紀錄。
         """
-        prompt = self._build_prompt(input_json)
+        # 擷取關鍵欄位
+        time = input_json.get("時間")
+        level = input_json.get("等級")
+        status = input_json.get("狀態")
+        location = input_json.get("地點")
 
-        # 更新摘要記憶：加入 user 輸入
-        self.summary_memory.add_user_message(prompt)
+        if self.memory.is_behavior_excluded(status):
+            return {
+                "input": input_json,
+                "agent_response": f"忽略排除的行為：{status}"
+            }
 
-        result = self.agent.run(prompt)
+        action = ""  # 待未來回饋機制補上
+        effectiveness = "待觀察"
+        event = {
+            "時間": time,
+            "等級": level,
+            "狀態": status,
+            "地點": location,
+            "應對": "尚未決策"
+        }
+        self.memory.record_event(event, action, effectiveness)
 
-        # 更新摘要記憶：加入 agent 回應
-        self.summary_memory.add_ai_message(result)
+        # 儲存當下模式狀態（方便推論結果附加提示用）
+        current_state = self.memory.get_current_state()
 
-        # 儲存摘要（並寫入 vector DB）
-        self.summary_memory.get_summary()
+        prompt = self._build_prompt(input_json)  # 執行推論
+        self.summary_memory.add_user_message(prompt)  # 更新摘要記憶：加入 user 輸入
+        result = self.agent.invoke({"input": input_json})
+        self.summary_memory.add_ai_message(result["output"])  # 更新摘要記憶：加入 agent 回應
 
-        # 一般記憶記錄
-        self.memory.append({
-            "input": input_json,
-            "response": result
-        })
+        self.summary_memory.get_summary()  # 儲存摘要（並寫入 vector DB）
+        self.memory.vector_memory.save()
 
         return {
             "input": input_json,
-            "agent_response": result
+            "agent_response": f"[{current_state}] {result['output']}"
         }
 
     def _build_prompt(self, input_json: Dict) -> str:

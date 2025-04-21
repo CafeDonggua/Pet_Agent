@@ -1,8 +1,9 @@
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain_openai import ChatOpenAI
-from agent.vector_memory import VectorMemory
+from agent.singleton_memory import vector_memory_instance
 from dotenv import load_dotenv
 import os
+
 
 class SummaryMemory:
     def __init__(self):
@@ -11,7 +12,7 @@ class SummaryMemory:
         model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
         self.llm = ChatOpenAI(temperature=0, model=model, api_key=key)
         self.memory = ConversationSummaryBufferMemory(llm=self.llm, max_token_limit=500)
-        self.vector_memory = VectorMemory()  # 初始化向量記憶模組
+        self.vector_memory = vector_memory_instance  # 初始化向量記憶模組
 
         self.memory = ConversationSummaryBufferMemory(
             llm=self.llm,
@@ -41,10 +42,15 @@ class SummaryMemory:
         Returns:
             str: 當前對話的摘要內容
         """
+        if not self.memory.chat_memory.messages:
+            return ""
         summary = self.memory.load_memory_variables({})["history"]
         if summary:
+            # 取得 chat history 所有 message 的 content
+            raw_history = self.memory.chat_memory.messages
+            flat_texts = [msg.content for msg in raw_history if hasattr(msg, "content")]
             # 儲存摘要到向量記憶
-            self.vector_memory.add_memory([summary])
+            self.vector_memory.add_memory(flat_texts)
         return summary
 
     def query_summaries(self, query: str, top_k: int = 5):
@@ -57,21 +63,3 @@ class SummaryMemory:
             List[Dict]: 返回最相似摘要的列表
         """
         return self.vector_memory.query_memory(query, top_k=top_k)
-
-# ===== 封裝成 Tool 用的函式 =====
-
-def search_summary_memory(query: str) -> str:
-    """
-    根據查詢關鍵字，從摘要記憶中找出最相關的內容。
-    Args:
-        query (str): 查詢的問題或關鍵字
-    Returns:
-        str: 匹配的摘要資訊（文字格式）
-    """
-    summary_memory = SummaryMemory()
-    results = summary_memory.query_summaries(query)
-    if not results:
-        return "找不到相關摘要記憶。"
-
-    output = "\n".join([f"[距離: {r['distance']:.4f}] {r['text']}" for r in results])
-    return output
