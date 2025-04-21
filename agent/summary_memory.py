@@ -1,3 +1,8 @@
+# summary_memory.py
+import warnings
+#TODO: 以後再處裡 ConversationSummaryBufferMemory版本問題
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain_openai import ChatOpenAI
 from agent.singleton_memory import vector_memory_instance
@@ -11,7 +16,6 @@ class SummaryMemory:
         key = os.getenv("OPENAI_CHAT_KEY")
         model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
         self.llm = ChatOpenAI(temperature=0, model=model, api_key=key)
-        self.memory = ConversationSummaryBufferMemory(llm=self.llm, max_token_limit=500)
         self.vector_memory = vector_memory_instance  # 初始化向量記憶模組
 
         self.memory = ConversationSummaryBufferMemory(
