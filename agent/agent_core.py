@@ -3,8 +3,7 @@
 import json
 from typing import Dict
 from agent.memory_manager import memory
-from agent.summary_memory import SummaryMemory
-
+from agent.singleton_plan import plan_manager_instance as plan_manager
 
 class PetCareAgent:
     def __init__(self, agent_executor):
@@ -19,6 +18,7 @@ class PetCareAgent:
         self.summary_memory = memory.summary_memory  # 專責對話摘要與向量儲存
         self.state = self.memory.get_current_state()  # 初始時讀取當前狀態
         self.event_log = []  # 這裡是用來記錄事件的，可以根據需求擴展
+        self.plan_manager = plan_manager   # 負責計畫功能
 
     def run(self, input_json: Dict) -> Dict:
         """
@@ -40,6 +40,20 @@ class PetCareAgent:
             return {
                 "input": input_json,
                 "agent_response": f"忽略排除的行為：{status}"
+            }
+
+        # 執行前進行衝突檢查
+        existing_plan = self.plan_manager.get_current_plan()
+        conflict_action = None
+        for plan in existing_plan:
+            if plan["時間"] == time and plan["行為"] != status:
+                conflict_action = plan["行為"]
+                break
+
+        if conflict_action:
+            return {
+                "input": input_json,
+                "agent_response": f"注意：目前時間已有計畫 '{conflict_action}'，與當前狀態 '{status}' 衝突，請檢查是否需要更新主計畫。"
             }
 
         action = ""  # 待未來回饋機制補上
