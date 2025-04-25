@@ -5,6 +5,7 @@ from typing import Dict
 from agent.memory_manager import memory
 from agent.summary_memory import SummaryMemory
 
+
 class PetCareAgent:
     def __init__(self, agent_executor):
         """
@@ -15,7 +16,7 @@ class PetCareAgent:
         """
         self.agent = agent_executor
         self.memory = memory  # 使用 Singleton 的 memory 管理
-        self.summary_memory = SummaryMemory()  # 專責對話摘要與向量儲存
+        self.summary_memory = memory.summary_memory  # 專責對話摘要與向量儲存
         self.state = self.memory.get_current_state()  # 初始時讀取當前狀態
         self.event_log = []  # 這裡是用來記錄事件的，可以根據需求擴展
 
@@ -56,8 +57,10 @@ class PetCareAgent:
         current_state = self.memory.get_current_state()
 
         prompt = self._build_prompt(input_json)  # 執行推論
+        summary = self.summary_memory.get_summary()
+
         self.summary_memory.add_user_message(prompt)  # 更新摘要記憶：加入 user 輸入
-        result = self.agent.invoke({"input": input_json})
+        result = self.agent.invoke({"input": input_json, "memory_summary": summary})
         self.summary_memory.add_ai_message(result["output"])  # 更新摘要記憶：加入 agent 回應
 
         self.summary_memory.get_summary()  # 儲存摘要（並寫入 vector DB）
