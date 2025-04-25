@@ -36,16 +36,9 @@ def main():
 
                 # 使用 AgentCore 處理邏輯決策
                 reasoning_result = core.run(data)
-                # 使用 LLM Agent 處理自然語言輸出
-                response = agent.invoke({"input": data})
 
-                # 整合結果：你可以選擇只儲存 LLM 輸出、reasoning，或兩者並存
-                final_output = {
-                    "摘要建議": reasoning_result,
-                    "模型回應": response
-                }
                 # 5. 儲存結果或進一步通知
-                store_agent_response(final_output, output_path)
+                store_agent_response(reasoning_result, output_path)
 
                 # 更新 last_processed_time 為這筆資料的時間戳記
                 last_processed_time = data["時間"]
