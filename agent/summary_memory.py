@@ -49,12 +49,12 @@ class SummaryMemory:
         if not self.memory.chat_memory.messages:
             return ""
         summary = self.memory.load_memory_variables({})["history"]
-        if summary:
-            # 取得 chat history 所有 message 的 content
-            raw_history = self.memory.chat_memory.messages
-            flat_texts = [msg.content for msg in raw_history if hasattr(msg, "content")]
-            # 儲存摘要到向量記憶
+        messages = self.memory.chat_memory.messages[-2:]
+        flat_texts = [msg.content for msg in messages if hasattr(msg, "content")]
+
+        if flat_texts:
             self.vector_memory.add_memory(flat_texts)
+
         return summary
 
     def query_summaries(self, query: str, top_k: int = 5):
