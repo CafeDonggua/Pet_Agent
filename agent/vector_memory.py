@@ -10,7 +10,6 @@ from langchain.schema import Document
 
 from dotenv import load_dotenv
 from typing import List, Dict
-import traceback
 
 # 載入環境變數
 load_dotenv()
@@ -114,7 +113,6 @@ class VectorMemory:
         for f in os.listdir(self.vector_store_path):
             print(" -", f)
 
-        self.vector_store.add_texts(new_texts)
         self.vector_store.save_local(self.vector_store_path)
 
         print(f"[AddMemory] 儲存後 index 數量：{self.vector_store.index.ntotal}")
