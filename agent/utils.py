@@ -21,10 +21,8 @@ def load_input_json(path: str) -> Dict:
 def get_latest_data(input_data: list, last_processed_time: str):
     """從資料列表中篩選出新的資料"""
     # 按照時間過濾出新資料
-    new_data = []
-    for entry in input_data:
-        if entry["時間"] > last_processed_time:
-            new_data.append(entry)
+    new_data = [entry for entry in input_data if entry["時間"] > last_processed_time]
+    new_data.sort(key=lambda x: x["時間"])
     return new_data
 
 def store_agent_response(response: Dict, output_path: str) -> None:
