@@ -4,6 +4,7 @@ from agent.context import global_state
 from agent.memory_manager import memory
 from agent.singleton_memory import vector_memory_instance
 from agent.summary_memory import SummaryMemory
+from agent.singleton_plan import plan_manager_instance as plan_manager
 
 
 def check_current_state() -> str:
@@ -26,7 +27,7 @@ def switch_status(new_status: str) -> str:
     Returns:
       str: 狀態更改結果回應。
     """
-    memory.update_state(memory.new_state)
+    memory.update_state(new_status)
     return f"已將狀態切換為 {new_status}"
 
 
@@ -133,6 +134,20 @@ def search_summary_memory(query: str) -> str:
         return "找不到相關摘要記憶。"
     return "\n".join([f"[距離: {r['distance']:.4f}] {r['text']}" for r in results])
 
+def add_plan_item(time_str: str, action: str) -> str:
+    plan_manager.add_to_current_plan(time_str, action, source="agent")
+    return f"已新增 {time_str} 的行為「{action}」到計畫中。"
+
+def check_plan_conflict(time_str: str, action: str) -> str:
+    conflict = plan_manager.check_conflict(time_str, action)
+    return "與每日計畫衝突" if conflict else "無衝突，可放心執行。"
+
+def get_today_plan() -> str:
+    plans = plan_manager.get_current_plan()
+    if not plans:
+        return "今日尚無任何計畫項目。"
+    return "\n".join([f"{p['時間']} - {p['行為']} ({'⚠️衝突' if p.get('衝突') else '✔'})" for p in plans])
+
 def get_toolkit():
     return [
         switch_status,
@@ -144,4 +159,7 @@ def get_toolkit():
         record_event,
         search_vector_memory,
         search_summary_memory,
+        add_plan_item,
+        check_plan_conflict,
+        get_today_plan
     ]
