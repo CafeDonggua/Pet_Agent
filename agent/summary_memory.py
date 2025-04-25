@@ -23,6 +23,7 @@ class SummaryMemory:
             max_token_limit=1000,
             return_messages=True
         )
+        self.last_saved_summary = ""  # 狀態追蹤避免重複儲存
 
     def add_user_message(self, message: str):
         """
@@ -48,12 +49,15 @@ class SummaryMemory:
         """
         if not self.memory.chat_memory.messages:
             return ""
-        summary = self.memory.load_memory_variables({})["history"]
-        messages = self.memory.chat_memory.messages[-2:]
-        flat_texts = [msg.content for msg in messages if hasattr(msg, "content")]
 
-        if flat_texts:
-            self.vector_memory.add_memory(flat_texts)
+        summary = self.memory.load_memory_variables({})["history"]
+        if summary and summary != self.last_saved_summary:
+            raw_history = self.memory.chat_memory.messages
+            flat_texts = [msg.content for msg in raw_history if hasattr(msg, "content")]
+
+            if flat_texts:
+                self.vector_memory.add_memory(flat_texts)
+                self.last_saved_summary = summary
 
         return summary
 
