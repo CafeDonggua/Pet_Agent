@@ -49,8 +49,8 @@ class VectorMemory:
             self.initialize_vector_store()
             # 在此時進行儲存
             self.save()
-            print("\n[save] 呼叫堆疊如下：")
-            traceback.print_stack(limit=5)
+            #print("\n[save] 呼叫堆疊如下：")
+            #traceback.print_stack(limit=5)
 
     def initialize_vector_store(self):
         """
@@ -84,8 +84,8 @@ class VectorMemory:
             texts (List[str]): 需要儲存的文本資料
         """
         print("[Debug] 儲存路徑絕對位置：", os.path.abspath(self.vector_store_path))
-        print("\n[AddMemory] 呼叫堆疊如下：")
-        traceback.print_stack(limit=5)
+        #print("\n[AddMemory] 呼叫堆疊如下：")
+        #traceback.print_stack(limit=5)
         print("[AddMemory] 接收到文本：", texts)
 
         if self.vector_store.index.ntotal == 0:
