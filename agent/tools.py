@@ -6,12 +6,6 @@ from agent.singleton_memory import vector_memory_instance
 from agent.summary_memory import SummaryMemory
 
 
-def none(self) -> str:
-    """
-    不用動作
-    """
-
-
 def check_current_state() -> str:
     """
     回傳目前的系統狀態。
@@ -141,7 +135,6 @@ def search_summary_memory(query: str) -> str:
 
 def get_toolkit():
     return [
-        none,
         switch_status,
         check_temp,
         adjust_aircon,
