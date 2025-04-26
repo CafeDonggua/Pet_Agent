@@ -42,17 +42,17 @@ class PetCareAgent:
                 "agent_response": f"忽略排除的行為：{status}"
             }
 
-        prompt = self._build_prompt(input_json)  # 執行推論
-        summary = self.summary_memory.get_summary()
+        prompt = self._build_prompt(input_json)  # 生成prompt的描述
+        summary = self.summary_memory.get_summary() # get目前累積的摘要：背景知識
 
         self.summary_memory.add_user_message(prompt)  # 更新摘要記憶：加入 user 輸入
-        result = self.agent.invoke({"input": input_json, "memory_summary": summary})
-        self.summary_memory.add_ai_message(result["output"])  # 更新摘要記憶：加入 agent 回應
+        steps  =list(self.agent.stream({"input": input_json, "memory_summary": summary}))
+        action_taken  = self._extract_actions_from_stream_steps(steps)
+        # 最後一個步驟的 Final Answer
+        final_output = self._extract_final_output_from_stream_steps(steps)
 
-        self.summary_memory.get_summary()  # 儲存摘要（並寫入 vector DB）
-        self.memory.vector_memory.save()
+        self.summary_memory.add_ai_message(final_output)  # 更新摘要記憶：加入 agent 回應
 
-        action_taken  = self._extract_action_from_result(result)
         event = {
             "時間": time,
             "等級": level,
@@ -61,13 +61,14 @@ class PetCareAgent:
             "應對": action_taken or "無特定行動"
         }
         self.memory.record_event(event, action_taken, effectiveness="待觀察")
-
+        self.summary_memory.get_summary()  # 更新摘要（並寫入 vector DB）
+        self.memory.vector_memory.save()
 
         # 儲存當下模式狀態（方便推論結果附加提示用）
         current_state = self.memory.get_current_state()
         return {
             "input": input_json,
-            "agent_response": f"[{current_state}] {result['output']}"
+            "agent_response": f"[{current_state}] {final_output}"
         }
 
     def _build_prompt(self, input_json: Dict) -> str:
@@ -92,13 +93,31 @@ class PetCareAgent:
             f"請輸出你的處理建議與採取的工具行動。"
         )
 
-    def _extract_action_from_result(self, result: Dict) -> str:
+    def _extract_actions_from_stream_steps(self, steps) -> str:
         """
-        從 Agent invoke 結果中提取出最後執行的 action 描述。
+        從 Agent stream() 流中的步驟提取所有的 action 使用紀錄。
         """
-        output = result.get("output", "")
-        # 這邊簡單抓取 Observation 或 Final Answer 前面
-        if "Final Answer:" in output:
-            return output.split("Final Answer:")[-1].strip()
-        else:
-            return "未知行動"
+        actions = []
+        for block in steps:
+            # 先看 'steps' 裡有沒有
+            if 'steps' in block:
+                for s in block['steps']:
+                    if hasattr(s, "action") and s.action is not None:
+                        tool_name = s.action.tool
+                        tool_input = s.action.tool_input
+                        actions.append(f"{tool_name}({tool_input})")
+            # 再看 'actions' 裡有沒有
+            if 'actions' in block:
+                for a in block['actions']:
+                    if hasattr(a, "tool") and a.tool is not None:
+                        tool_name = a.tool
+                        tool_input = a.tool_input
+                        actions.append(f"{tool_name}({tool_input})")
+
+        return " -> ".join(actions) if actions else "無行動"
+
+    def _extract_final_output_from_stream_steps(self, steps) -> str:
+        for block in reversed(steps):
+            if 'output' in block:
+                return block['output']
+        return "無最終回覆"
