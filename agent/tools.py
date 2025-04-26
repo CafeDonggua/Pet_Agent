@@ -1,16 +1,17 @@
-# tools.py
-from typing import Optional
+from typing import Optional, Dict
+
+from pydantic_settings.sources import import_toml
+
 from agent.context import global_state
 from agent.memory_manager import memory
 from agent.singleton_memory import vector_memory_instance
 from agent.summary_memory import SummaryMemory
 from agent.singleton_plan import plan_manager_instance as plan_manager
-from typing import Dict
+import json
 
-
-def check_current_state() -> str:
+def check_current_state(_: Optional[str] = None) -> str:
     """
-    回傳目前的系統狀態。
+    回傳目前系統狀態（模式）。
 
     Returns:
       str: 狀態描述（例如：'目前狀態為觀察模式'）。
@@ -39,12 +40,12 @@ def check_temp(self) -> str:
     Returns:
       str: 當前室內溫度（例如：'目前室內溫度為 28°C'）。
     """
-    return "目前室內溫度為 {global_state.temp}"
+    return f"目前室內溫度為 {global_state.temp}°C"
 
 
 def adjust_aircon(target_temp: int) -> str:
     """
-    調整冷氣的溫度。
+    調整冷氣溫度。
 
     Args:
       target_temp (int): 目標冷氣溫度（°C）。
@@ -55,7 +56,7 @@ def adjust_aircon(target_temp: int) -> str:
     return f"已將冷氣調整至 {target_temp}°C"
 
 
-def start_feeder() -> str:
+def start_feeder(_: Optional[str] = None) -> str:
     """
     啟動餵食機器，讓狗狗進食。
 
@@ -135,23 +136,84 @@ def search_summary_memory(query: str) -> str:
         return "找不到相關摘要記憶。"
     return "\n".join([f"[距離: {r['distance']:.4f}] {r['text']}" for r in results])
 
-def add_plan_item(time_str: str, action: str) -> str:
+def add_plan_item(input: str) -> str:
+    """
+    新增一個行為到當前計畫中。
+
+    Args:
+        input (str): JSON 格式的字串，例如 '{"time_str": "16:00", "action": "播放音樂"}'
+
+    Returns:
+        str: 新增結果說明。
+    """
+    try:
+        input_dict = json.loads(input) if isinstance(input, str) else input
+    except json.JSONDecodeError:
+        return "新增失敗：無法解析輸入，請確認格式為 JSON。"
+
+    time_str = input_dict.get("time_str")
+    action = input_dict.get("action")
+
+    if not time_str or not action:
+        return "新增失敗：請提供正確的時間 (time_str) 和行為 (action)。"
+
     plan_manager.add_to_current_plan(time_str, action, source="agent")
     return f"已新增 {time_str} 的行為「{action}」到計畫中。"
 
-def check_plan_conflict(time_str: str, action: str) -> str:
+def check_daily_plan_conflict(time_str: str, action: str) -> str:
+    """
+        檢查某個指定時間的行為是否與每日固定計畫 (daily_plan) 衝突。
+
+        Args:
+            time_str (str): 目標時間，例如 "16:00"
+            action (str): 預定行為，例如 "播放音樂"
+
+        Returns:
+            str: 衝突檢查的結果說明。
+        """
+
+    if not time_str or not action:
+        return "輸入錯誤，請提供正確的時間和行為！"
+
+    current_plan = plan_manager.check_conflict(time_str, action)
+    for plan in current_plan:
+        if plan["時間"] == time_str:
+            if plan["行為"] != action:
+                return (
+                    f"注意：在 {time_str} 已存在計畫「{plan['行為']}」，"
+                    f"而你要新增的是「{action}」。這將會產生衝突！\n"
+                    f"請確認是否要覆蓋原有計畫。"
+                )
+            else:
+                return (
+                    f"在 {time_str} 已有相同的行為「{action}」，"
+                    "無需再次新增。"
+                )
+
+    return (
+        f"目前在 {time_str} 沒有任何計畫，可以安全新增「{action}」。"
+    )
+
+
+
     conflict = plan_manager.check_conflict(time_str, action)
     return "與每日計畫衝突" if conflict else "無衝突，可放心執行。"
 
-def get_today_plan() -> str:
+def get_today_plan(_: Optional[str] = None) -> str:
+    """
+    取得今天的主計畫列表。
+
+    Returns:
+        str: 今日計畫描述。
+    """
     plans = plan_manager.get_current_plan()
     if not plans:
         return "今日尚無任何計畫項目。"
     return "\n".join([f"{p['時間']} - {p['行為']} ({'⚠️衝突' if p.get('衝突') else '✔'})" for p in plans])
 
-def check_plan_conflict_tool(input: Dict) -> str:
+def check_current_plan_conflict(time_str: str, action: str) -> str:
     """
-    檢查某個指定時間的行為是否與目前的計畫衝突。
+    檢查某個指定時間的行為是否與今日臨時計畫 (current_plan) 衝突
 
     Args:
         time_str (str): 目標時間，例如 "16:00"
@@ -160,8 +222,7 @@ def check_plan_conflict_tool(input: Dict) -> str:
     Returns:
         str: 衝突檢查的結果說明。
     """
-    time_str = input.get("time_str")
-    action = input.get("action")
+
     if not time_str or not action:
         return "輸入錯誤，請提供正確的時間和行為！"
 
@@ -197,7 +258,7 @@ def get_toolkit():
         search_vector_memory,
         search_summary_memory,
         add_plan_item,
-        check_plan_conflict,
+        check_daily_plan_conflict,
         get_today_plan,
-        check_plan_conflict_tool
+        check_current_plan_conflict
     ]
