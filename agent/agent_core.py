@@ -42,22 +42,8 @@ class PetCareAgent:
                 "agent_response": f"忽略排除的行為：{status}"
             }
 
-        # 執行前進行衝突檢查
-        existing_plan = self.plan_manager.get_current_plan()
-        conflict_action = None
-        for plan in existing_plan:
-            if plan["時間"] == time and plan["行為"] != status:
-                conflict_action = plan["行為"]
-                break
-
-        if conflict_action:
-            return {
-                "input": input_json,
-                "agent_response": f"注意：目前時間已有計畫 '{conflict_action}'，與當前狀態 '{status}' 衝突，請檢查是否需要更新主計畫。"
-            }
-
-        action = ""  # 待未來回饋機制補上
-        effectiveness = "待觀察"
+        action = "待觀察" # 待未來回饋機制補上
+        effectiveness = ""
         event = {
             "時間": time,
             "等級": level,
@@ -66,9 +52,6 @@ class PetCareAgent:
             "應對": "尚未決策"
         }
         self.memory.record_event(event, action, effectiveness)
-
-        # 儲存當下模式狀態（方便推論結果附加提示用）
-        current_state = self.memory.get_current_state()
 
         prompt = self._build_prompt(input_json)  # 執行推論
         summary = self.summary_memory.get_summary()
@@ -79,7 +62,8 @@ class PetCareAgent:
 
         self.summary_memory.get_summary()  # 儲存摘要（並寫入 vector DB）
         self.memory.vector_memory.save()
-
+        # 儲存當下模式狀態（方便推論結果附加提示用）
+        current_state = self.memory.get_current_state()
         return {
             "input": input_json,
             "agent_response": f"[{current_state}] {result['output']}"

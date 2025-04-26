@@ -148,6 +148,42 @@ def get_today_plan() -> str:
         return "今日尚無任何計畫項目。"
     return "\n".join([f"{p['時間']} - {p['行為']} ({'⚠️衝突' if p.get('衝突') else '✔'})" for p in plans])
 
+def check_plan_conflict_tool(input: dict) -> str:
+    """
+    檢查某個指定時間的行為是否與目前的計畫衝突。
+
+    Args:
+        time_str (str): 目標時間，例如 "16:00"
+        action (str): 預定行為，例如 "播放音樂"
+
+    Returns:
+        str: 衝突檢查的結果說明。
+    """
+    time_str = input.get("time_str")
+    action = input.get("action")
+    if not time_str or not action:
+        return "輸入錯誤，請提供正確的時間和行為！"
+
+    current_plan = plan_manager.get_current_plan()
+
+    for plan in current_plan:
+        if plan["時間"] == time_str:
+            if plan["行為"] != action:
+                return (
+                    f"注意：在 {time_str} 已存在計畫「{plan['行為']}」，"
+                    f"而你要新增的是「{action}」。這將會產生衝突！\n"
+                    f"請確認是否要覆蓋原有計畫。"
+                )
+            else:
+                return (
+                    f"在 {time_str} 已有相同的行為「{action}」，"
+                    "無需再次新增。"
+                )
+
+    return (
+        f"目前在 {time_str} 沒有任何計畫，可以安全新增「{action}」。"
+    )
+
 def get_toolkit():
     return [
         switch_status,
@@ -161,5 +197,6 @@ def get_toolkit():
         search_summary_memory,
         add_plan_item,
         check_plan_conflict,
-        get_today_plan
+        get_today_plan,
+        check_plan_conflict_tool
     ]
