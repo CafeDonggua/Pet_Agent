@@ -5,6 +5,7 @@ from agent.memory_manager import memory
 from agent.singleton_memory import vector_memory_instance
 from agent.summary_memory import SummaryMemory
 from agent.singleton_plan import plan_manager_instance as plan_manager
+from typing import Dict
 
 
 def check_current_state() -> str:
@@ -148,7 +149,7 @@ def get_today_plan() -> str:
         return "今日尚無任何計畫項目。"
     return "\n".join([f"{p['時間']} - {p['行為']} ({'⚠️衝突' if p.get('衝突') else '✔'})" for p in plans])
 
-def check_plan_conflict_tool(input: dict) -> str:
+def check_plan_conflict_tool(input: Dict) -> str:
     """
     檢查某個指定時間的行為是否與目前的計畫衝突。
 
