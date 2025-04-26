@@ -42,17 +42,6 @@ class PetCareAgent:
                 "agent_response": f"忽略排除的行為：{status}"
             }
 
-        action = "待觀察" # 待未來回饋機制補上
-        effectiveness = ""
-        event = {
-            "時間": time,
-            "等級": level,
-            "狀態": status,
-            "地點": location,
-            "應對": "尚未決策"
-        }
-        self.memory.record_event(event, action, effectiveness)
-
         prompt = self._build_prompt(input_json)  # 執行推論
         summary = self.summary_memory.get_summary()
 
@@ -62,6 +51,18 @@ class PetCareAgent:
 
         self.summary_memory.get_summary()  # 儲存摘要（並寫入 vector DB）
         self.memory.vector_memory.save()
+
+        action_taken  = self._extract_action_from_result(result)
+        event = {
+            "時間": time,
+            "等級": level,
+            "狀態": status,
+            "地點": location,
+            "應對": action_taken or "無特定行動"
+        }
+        self.memory.record_event(event, action_taken, effectiveness="待觀察")
+
+
         # 儲存當下模式狀態（方便推論結果附加提示用）
         current_state = self.memory.get_current_state()
         return {
@@ -90,3 +91,14 @@ class PetCareAgent:
             f"請根據目前狀況評估並使用必要的工具（如通知主人、記錄異常等）。"
             f"請輸出你的處理建議與採取的工具行動。"
         )
+
+    def _extract_action_from_result(self, result: Dict) -> str:
+        """
+        從 Agent invoke 結果中提取出最後執行的 action 描述。
+        """
+        output = result.get("output", "")
+        # 這邊簡單抓取 Observation 或 Final Answer 前面
+        if "Final Answer:" in output:
+            return output.split("Final Answer:")[-1].strip()
+        else:
+            return "未知行動"
