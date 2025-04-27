@@ -1,53 +1,45 @@
 # main.py
 
 import time
-from agent.agent_init import init_agent
-from agent.tools import get_toolkit
-from agent.utils import load_input_json, get_latest_data, store_agent_response
 from agent.agent_core import PetCareAgent
-from agent.context import global_state
-
+from agent.utils import load_input_json, get_latest_data, store_agent_response
 
 def main():
-    # 1. 讀入 JSON 輸入
+    input_path = "./input/sample.json"
     output_path = "./output/response.json"
-    last_processed_time = "20250000000000"  # 初始時間戳記，設定為最早的時間
+    last_processed_time = "20250000000000"  # 初始時間戳記
 
-    # 初始化 LangChain agent_executor
-    agent_executor = init_agent(get_toolkit())
-
-    # 創建 PetCareAgent 實例
-    core = PetCareAgent(agent_executor)
+    # 初始化新版 GOAP Agent
+    agent = PetCareAgent()
 
     while True:
-        input_data = load_input_json("./input/sample.json")
-        # 2. 根據時間戳記過濾新資料
-        new_data = get_latest_data(input_data, last_processed_time)
+        try:
+            # 讀取輸入資料
+            input_data = load_input_json(input_path)
+            new_data = get_latest_data(input_data, last_processed_time)
 
-        if new_data:
-            # 3. 初始化工具與 Agent
-            toolkit = get_toolkit()
-            agent = init_agent(toolkit)  # LLM Agent：自然語言輸出
+            if new_data:
+                for data in new_data:
+                    # 1. 更新世界狀態並執行 GOAP 決策
+                    result = agent.run(data)
 
-            # 4. 執行 Agent 並處理新資料
-            for data in new_data:
-                if "室溫" in data:
-                    global_state.temp = data["室溫"]
+                    # 2. 儲存處理結果
+                    store_agent_response(result, output_path)
 
-                # 使用 AgentCore 處理邏輯決策
-                reasoning_result = core.run(data)
+                    # 3. 更新最後處理時間
+                    last_processed_time = data["時間"]
 
-                # 5. 儲存結果或進一步通知
-                store_agent_response(reasoning_result, output_path)
+                print(f"[Main] 本次處理 {len(new_data)} 筆新資料。")
 
-                # 更新 last_processed_time 為這筆資料的時間戳記
-                last_processed_time = data["時間"]
+            else:
+                print("[Main] 暫無新資料，等待中...")
 
-            # 6. 每 3 秒檢查一次
+            # 每 3 秒檢查一次
             time.sleep(3)
-            core.memory.vector_memory.save()
-            # 在此時進行儲存
 
+        except Exception as e:
+            print(f"[Main] 發生錯誤：{e}")
+            time.sleep(3)  # 出錯也休息一下再試
 
 if __name__ == "__main__":
     main()
