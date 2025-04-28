@@ -1,80 +1,138 @@
 # agent/agent_core.py
 
 from typing import Dict
+from agent.agent_init import init_agent
 from agent.memory_manager import memory
 from agent.singleton_plan import plan_manager_instance as plan_manager
-from agent.goap.world_state_manager import WorldStateManager
-from agent.goap.goal_manager import GoalManager
-from agent.goap.action_planner import ActionPlanner
-from agent.goap.action_registry import action_registry
-from agent.goap.goap_cycle import goap_cycle
-from agent.goap.state_inference_manager import StateInferenceManager
+from agent.context import global_state
+from agent.tools import get_toolkit
+
 
 class PetCareAgent:
     def __init__(self):
         """
-        初始化新的 GOAP PetCareAgent。
+        初始化 PetCareAgent，內部自動 init_agent()
         """
+        self.agent = init_agent()
         self.memory = memory
+        self.summary_memory = memory.summary_memory
         self.plan_manager = plan_manager
-        self.world_state_manager = WorldStateManager()
-        self.goal_manager = GoalManager()
-        self.action_planner = ActionPlanner()
-        self.inference_manager = StateInferenceManager()
-
-        # 將所有已註冊行動放入 planner
-        for action in action_registry.actions:
-            self.action_planner.register_action(action)
-
+        self.state = self.memory.get_current_state()
         self.event_log = []
-
-        # 可以設定初始世界狀態
-        self.initialize_world_state()
-
-    def initialize_world_state(self):
-        """
-        預設世界狀態，可依需要客製化
-        """
-        default_world_state = {
-            "is_awake": False,
-            "owner_notified": False,
-            "is_hungry": True
-        }
-        self.world_state_manager.update_states(default_world_state)
-
-    def update_world_state_from_input(self, input_json: Dict):
-        """
-        根據輸入資料更新世界狀態。
-        Args:
-            input_json (Dict): 來自感測或外部資料的 JSON 格式
-        """
-        updates = self.inference_manager.infer_state_from_log(input_json)
-
-
-        if updates:
-            self.world_state_manager.update_states(updates)
 
     def run(self, input_json: Dict) -> Dict:
         """
-        接收一筆輸入資料，更新世界狀態並啟動 GOAP 決策循環。
-        Args:
-            input_json (Dict): 感測輸入資料
-        Returns:
-            Dict: 本次行動摘要
+        處理一筆 observation log，讓 LLM Agent 依據 GOAP 流程自主決策並執行行動。
         """
-        # 更新世界狀態
-        self.update_world_state_from_input(input_json)
+        observation = input_json
+        completed = False
+        full_steps = []
 
-        # 執行 GOAP 流程
-        goap_cycle(
-            self.world_state_manager,
-            self.goal_manager,
-            self.action_planner
-        )
+        while not completed:
+            related_memory = self.memory.search_similar_memory(str(observation))
 
-        # 可以額外記錄摘要、事件（未來擴充用）
-        world_snapshot = self.world_state_manager.get_state()
+            prompt_input = {
+                "input": f"觀察: {observation}\n相關記憶: {related_memory}",
+                "tools": "\n".join([f"- {tool.__name__}: {tool.__doc__}" for tool in get_toolkit()])
+            }
+
+            steps = list(self.agent.stream(prompt_input))
+            full_steps.extend(steps)
+
+            # 檢查是否完成
+            for block in steps:
+                if 'output' in block:
+                    output_text = block['output']
+                    if "完成" in output_text or "無需進一步行動" in output_text:
+                        completed = True
+                        break
+
+            if not completed:
+                # 如果還沒完成，模擬新的 observation
+                observation = self._simulate_new_observation(steps)
+
+            # 最後一次 memory更新
+        final_output = self._extract_final_output_from_steps(full_steps)
+        actions_taken = self._extract_actions_from_steps(full_steps)
+
+        self.summary_memory.add_user_message(str(observation))
+        self.summary_memory.add_ai_message(final_output)
+        self.memory.record_event(observation, actions_taken, effectiveness="待觀察")
+        self.summary_memory.get_summary()
+
         return {
             "input": input_json,
-            "current_world_state": world_snapshot
+            "agent_response": final_output
         }
+
+    def _extract_final_output_from_steps(self, steps) -> str:
+        for block in reversed(steps):
+            if 'output' in block:
+                return block['output']
+        return "無最終回覆"
+
+    def _extract_actions_from_steps(self, steps) -> str:
+        actions = []
+        for block in steps:
+            if 'steps' in block:
+                for s in block['steps']:
+                    if hasattr(s, "action") and s.action is not None:
+                        actions.append(f"{s.action.tool}({s.action.tool_input})")
+            if 'actions' in block:
+                for a in block['actions']:
+                    if hasattr(a, "tool") and a.tool is not None:
+                        actions.append(f"{a.tool}({a.tool_input})")
+        return " -> ".join(actions) if actions else "無行動"
+
+    def _simulate_new_observation(self, steps) -> Dict:
+        """
+        根據最近的行動模擬一個更合理的新的 Observation。
+        """
+        last_action = None
+
+        for block in reversed(steps):
+            if 'actions' in block:
+                for a in block['actions']:
+                    if hasattr(a, "tool") and a.tool:
+                        last_action = a.tool
+                        break
+            if 'steps' in block:
+                for s in block['steps']:
+                    if hasattr(s, "action") and s.action:
+                        last_action = s.action.tool
+                        break
+            if last_action:
+                break
+
+        # 改成更合理的模擬行為
+        if last_action == "play_music":
+            return {
+                "time": "模擬時間",
+                "action": "步行",
+                "地點": "客廳"
+            }
+        elif last_action == "start_feeder":
+            return {
+                "time": "模擬時間",
+                "action": "完成餵食，狗狗正在安靜休息",
+                "地點": "餐廳"
+            }
+        elif last_action == "notify_owner" or last_action == "record_event":
+            return {
+                "time": "模擬時間",
+                "action": "靜止休息",
+                "地點": "客廳"
+            }
+        elif last_action == "adjust_aircon":
+            return {
+                "time": "模擬時間",
+                "action": "靜止",
+                "地點": "原地"
+            }
+        else:
+            # Default fallback
+            return {
+                "time": "模擬時間",
+                "action": "步行",
+                "地點": "原地"
+            }

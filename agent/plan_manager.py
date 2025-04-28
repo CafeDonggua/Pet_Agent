@@ -62,10 +62,10 @@ class PlanManager:
         return self.plan.get("current_plan", [])
 
     def add_to_current_plan(self, time_str: str, action: str, source: str = "自動新增") -> None:    #新增新任務並標註是否與 daily plan 衝突
-        conflict = any(p["時間"] == time_str and p["行為"] != action for p in self.plan["daily_plan"])
+        conflict = any(p["time"] == time_str and p["action"] != action for p in self.plan["daily_plan"])
         self.plan["current_plan"].append({
-            "時間": time_str,
-            "行為": action,
+            "time": time_str,
+            "action": action,
             "來源": source,
             "衝突": conflict
         })
@@ -73,7 +73,7 @@ class PlanManager:
         self.save()
 
     def check_conflict(self, time_str: str, action: str) -> bool:   #主動檢查特定行為是否衝突
-        return any(p["時間"] == time_str and p["行為"] != action for p in self.plan["daily_plan"])
+        return any(p["time"] == time_str and p["action"] != action for p in self.plan["daily_plan"])
 
     def clear_current_plan(self):   #清空目前計畫
         self.plan["current_plan"] = []
@@ -103,8 +103,8 @@ class PlanManager:
         """
         conflict = self.check_plan_conflict(new_task)
         new_task_entry = {
-            "時間": new_task["時間"],
-            "行為": new_task["行為"],
+            "time": new_task["time"],
+            "action": new_task["action"],
             "來源": source,
             "衝突": conflict
         }

@@ -142,24 +142,35 @@ def add_plan_item(input) -> str:
 
     Args:
         input (str or dict): JSON 格式字串或字典
-
+        {"time": "時間", "action": "預期行動"}
     Returns:
         str: 新增結果說明。
     """
     try:
         # 如果是 str，先嘗試轉成 dict
         if isinstance(input, str):
+            print("22222222222")
+
             input_dict = json.loads(input)
         else:
+            print("111111111")
+
             input_dict = input
     except Exception as e:
         return f"解析輸入失敗：{str(e)}"
+    print("00000000000000")
+
+    # 如果 input_dict 是 list，取第一個元素
+    if isinstance(input_dict, list):
+        if len(input_dict) == 0:
+            return "新增計畫失敗，輸入為空列表。"
+        input_dict = input_dict[0]
 
     time_str = input_dict.get("time")
     action = input_dict.get("action")
 
     if not time_str or not action:
-        return "輸入錯誤，請提供正確的時間 (time_str) 和行為 (action)。"
+        return "輸入錯誤，請提供正確的時間 (time) 和行為 (action)。"
 
     plan_manager.add_to_current_plan(time_str, action, source="agent")
     return f"已新增 {time_str} 的行為「{action}」到計畫中。"
@@ -188,15 +199,15 @@ def check_daily_plan_conflict(input) -> str:
     action = input_dict.get("action")
 
     if not time_str or not action:
-        return "輸入錯誤，請提供正確的時間 (time_str) 和行為 (action)。"
+        return "輸入錯誤，請提供正確的時間 (time) 和行為 (action)。"
 
     daily_plan = plan_manager.get_daily_plan()
 
     for plan in daily_plan:
-        if plan["時間"] == time_str:
-            if plan["行為"] != action:
+        if plan["time"] == time_str:
+            if plan["action"] != action:
                 return (
-                    f"注意：在 {time_str} 已存在計畫「{plan['行為']}」，"
+                    f"注意：在 {time_str} 已存在計畫「{plan['action']}」，"
                     f"而你要新增的是「{action}」。這將會產生衝突！\n"
                     f"請確認是否要覆蓋原有計畫。"
                 )
@@ -209,10 +220,10 @@ def check_daily_plan_conflict(input) -> str:
     get_current_plan = plan_manager.get_current_plan()
 
     for plan in get_current_plan:
-        if plan["時間"] == time_str:
-            if plan["行為"] != action:
+        if plan["time"] == time_str:
+            if plan["action"] != action:
                 return (
-                    f"注意：在 {time_str} 已存在計畫「{plan['行為']}」，"
+                    f"注意：在 {time_str} 已存在計畫「{plan['action']}」，"
                     f"而你要新增的是「{action}」。這將會產生衝突！\n"
                     f"請確認是否要覆蓋原有計畫。"
                 )
@@ -234,7 +245,7 @@ def get_today_plan(_: Optional[str] = None) -> str:
     plans = plan_manager.get_current_plan()
     if not plans:
         return "今日尚無任何計畫項目。"
-    return "\n".join([f"{p['時間']} - {p['行為']} ({'⚠️衝突' if p.get('衝突') else '✔'})" for p in plans])
+    return "\n".join([f"{p['time']} - {p['action']} ({'衝突' if p.get('衝突') else '✔'})" for p in plans])
 
 
 

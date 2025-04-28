@@ -1,4 +1,4 @@
-# agent_init.py
+# agent/agent_init.py
 
 import os
 from langchain.agents import Tool, AgentExecutor, create_react_agent
@@ -6,31 +6,27 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
+from agent.tools import get_toolkit
 
 
-def init_agent(tools: list):
+def init_agent():
     """
-    使用 GPT-4o 初始化 ReAct Agent。
-
-    Args:
-      tools (list): 已註冊的工具函式列表。
-
-    Returns:
-      AgentExecutor: 可執行的代理人物件。
+    初始化新的 GOAP 思考流程 LLM Agent（內部自己抓工具）
     """
     load_dotenv(Path("..\\.env"))
     load_dotenv(find_dotenv())
     chat_key = os.getenv("OPENAI_CHAT_KEY")
     chat_model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 
-    # 使用 GPT-4o 模型
     llm = ChatOpenAI(
         model=chat_model,
         temperature=0,
         api_key=chat_key
     )
 
-    # 將工具轉換為 LangChain 的 Tool 實例
+    # 自己抓工具，不需要外部傳入
+    tools = get_toolkit()
+
     langchain_tools = [
         Tool(
             name=tool.__name__,
@@ -40,68 +36,60 @@ def init_agent(tools: list):
         for tool in tools
     ]
 
+
     prompt = ChatPromptTemplate.from_template(
-        """Answer the following questions as best you can. You have access to the following tools:{tools}
+        """你是一個寵物照護 AI Agent。
+你的任務是根據當前觀察（Observation）、已知可使用的工具（Tools），自主規劃狗狗今日的照護行動計畫。
 
-你是一個寵物照護 AI Agent，輸入是 JSON 格式的狗狗狀態資料。
-你的目標是根據當前資料與過往觀察記憶，分析狗狗的健康情況並採取必要行動。
-
-你擁有以下能力：
-- 使用工具處理異常行為（如通知主人、調整冷氣、記錄異常）
-- 根據歷史記憶給出更智慧的建議（包含過去對話與總結摘要）
-- 參考每日飼養主計畫，確保每一項決策不與既定計畫衝突
-- 使用工具查詢主計畫中是否已有安排，以避免產生衝突
-
-請注意：
-- **觀察到的狗狗自然行為**（例如「步行」「趴著」等）僅供判斷健康狀態，**無需比對主計畫**。
-- **只有當你打算**「新增自己的行動」或「提出新任務」（例如安排運動、進食、通知事項等）時，才需要事先使用工具確認是否與主計畫衝突。
-- 新增行為前，請先使用 `check_daily_plan_conflict` 工具，檢查是否與原有計畫重疊或矛盾。
-
-如果你想新增新的行為（例如額外的活動、提醒），
-你可以使用 `check_daily_plan_conflict` 工具，
-檢查新的計畫是否會與目前的主計畫衝突。
-
-注意：如果你發現任務會與主計畫衝突，請：
-- 暫停行動
-- 回報衝突內容
-- 給予人類建議，詢問是否要調整或覆蓋計畫
-
-注意：請記住：
-- 沒有檢查過的情況下，不要直接新增或變更主計畫
-- 當有潛在衝突時，請先使用 'check_current_plan_conflict' 檢查
-- 當有潛在衝突時，請以下列格式回報，等待人類確認
-
-Final Answer: 發現新增行為「{{行為}}」在 {{時間}} 時段與現有主計畫「{{原本行為}}」衝突。
-建議詢問主人是否需要變更主計畫。請等待人類回覆後再繼續。
+請依循以下 GOAP 思考流程：
+1. 感知 (Observation)：
+    - 理解目前狗狗的行為、地點、時間資訊。
+    - 注意：每次行動後，除非有新的 Observation，否則環境狀態不會改變。
+2. 目標決策 (Goal Selection)：
+    - 根據 Observation 判斷是否需要新增 Current Plan。
+   - 如需新增，請使用工具 `check_daily_plan_conflict` 確認是否與主計畫衝突。
+3. 規劃 (Planning)：安排合理順序的行動步驟。
+   - 合理規劃行動順序。
+   - 每個行動必須選擇一個合適的工具（Tools）, should be one of [{tool_names}]
+4. 執行 (Act)：
+   - 依序執行行動。
+   - 每次 Action 後假設 Observation 暫時未更新，請自行判斷是否需要繼續行動。
+5. 觀察與調整 (Observe & Adjust)：每步驟後重新觀察環境，必要時調整計畫。
+   - 若已完成所有必要行動，或觀察後無需進一步行動時，請務必停止並輸出 Final Answer！
+   - 不得無限重複工具呼叫
+   - Final Answer 一出，代表本次照護流程結束。
 
 ---
+可使用的工具名稱（Tools）如下：
+{tool_names}
+可使用的工具描述（詳細功能）如下：
+{tools}
+當前觀察 (Observation)：
+{input}
+---
+輸出格式要求（必須遵循）
+請遵循 Thought → Action → Observation → Final Answer 的格式輸出。
 
-你可以使用工具處理異常行為，或根據歷史記憶給出更智慧的建議。
-記憶包含：
-- 過去對話與總結摘要
-- 類似情境下曾經採取的行動
+範例：
+Thought: 分析當前情境與需要的行動
+Action: [選擇一個工具名稱]
+Action Input: [填入行動的輸入內容，如無則寫「無」]
+Observation: 描述行動後的結果（假設環境無更新時，請合理推測）
+Thought: 分析行動後的結果的情境與是否有需要的行動（如果無需新的行動，或所有必要行動已完成，請輸出：）
+Final Answer: 本次照護流程完成。
+---
+注意事項：
+- 不要持續重複同一個行動（例如 check_temp, notify_owner）。
+- 查詢型工具（如 get_today_plan, check_temp 等）使用後，請立即判斷是否需要進一步行動。
+- 若無新的明確行動，請立即輸出 Final Answer，結束本次流程。
+- 如確定無需再執行新的行動，請儘速輸出 Final Answer。
+- 若遇到無法處理的情境，也應輸出 Final Answer。
+- 請勿創造不存在的工具。
+---
 
-歷史摘要如下： {memory_summary}
-
-請依據以下邏輯思考：
-- 觀察輸入資料（狗狗的狀態、等級、時間與地點）
-- 結合記憶系統中儲存的對話與事件，判斷是否需要立即處理或記錄
-- 必要時使用工具處理當下狀況
-- 最後輸出簡單總結與建議
-
-請務必使用以下格式進行推理與決策（否則將導致錯誤）：
-Thought: 你在想什麼？
-Action: the action to take, should be one of [{tool_names}]
-Action Input: 工具的輸入內容（如果有）
-Observation: 工具回傳結果
-...(this Thought/Action/Action Input/Observation can repeat N times)
-Final Answer: 最後要回傳給使用者的建議內容
-
-請**確保輸出結尾是 Final Answer，不要有多餘敘述。**
-
-Begin!
-Question: {input}
-Thought:{agent_scratchpad}"""
+請務必遵循以上步驟，開始！
+Thought:{agent_scratchpad}
+"""
     )
 
     agent = create_react_agent(llm=llm, tools=langchain_tools, prompt=prompt)
