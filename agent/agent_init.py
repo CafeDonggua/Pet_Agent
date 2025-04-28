@@ -50,7 +50,7 @@ def init_agent():
    - 如需新增，請使用工具 `check_daily_plan_conflict` 確認是否與主計畫衝突。
 3. 規劃 (Planning)：安排合理順序的行動步驟。
    - 合理規劃行動順序。
-   - 每個行動必須選擇一個合適的工具（Tools）, should be one of [{tool_names}]
+   - 每個行動如果需要使用工具，則要選擇一個合適的工具（Tools）, should be one of [{tool_names}]
 4. 執行 (Act)：
    - 依序執行行動。
    - 每次 Action 後假設 Observation 暫時未更新，請自行判斷是否需要繼續行動。

@@ -247,7 +247,11 @@ def get_today_plan(_: Optional[str] = None) -> str:
         return "今日尚無任何計畫項目。"
     return "\n".join([f"{p['time']} - {p['action']} ({'衝突' if p.get('衝突') else '✔'})" for p in plans])
 
-
+def wait_and_observe(input_data: str = "無") -> str:
+    """
+    當前不需要立即行動，進入觀察等待狀態。
+    """
+    return "目前進入觀察等待狀態，無需立即行動。"
 
 def get_toolkit():
     return [
@@ -262,5 +266,6 @@ def get_toolkit():
         search_summary_memory,
         add_plan_item,
         check_daily_plan_conflict,
-        get_today_plan
+        get_today_plan,
+        wait_and_observe
     ]
