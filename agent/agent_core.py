@@ -8,6 +8,7 @@ from agent.goap.goal_manager import GoalManager
 from agent.goap.action_planner import ActionPlanner
 from agent.goap.action_registry import action_registry
 from agent.goap.goap_cycle import goap_cycle
+from agent.goap.state_inference_manager import StateInferenceManager
 
 class PetCareAgent:
     def __init__(self):
@@ -19,6 +20,7 @@ class PetCareAgent:
         self.world_state_manager = WorldStateManager()
         self.goal_manager = GoalManager()
         self.action_planner = ActionPlanner()
+        self.inference_manager = StateInferenceManager()
 
         # 將所有已註冊行動放入 planner
         for action in action_registry.actions:
@@ -46,19 +48,8 @@ class PetCareAgent:
         Args:
             input_json (Dict): 來自感測或外部資料的 JSON 格式
         """
-        updates = {}
+        updates = self.inference_manager.infer_state_from_log(input_json)
 
-        # 例子：根據 input_json 內容更新狀態
-        if "狀態" in input_json:
-            if input_json["狀態"] == "醒著":
-                updates["is_awake"] = True
-            elif input_json["狀態"] == "睡覺":
-                updates["is_awake"] = False
-
-        if "餓" in input_json:
-            updates["is_hungry"] = input_json["餓"]
-
-        # 其他根據情境補充
 
         if updates:
             self.world_state_manager.update_states(updates)
