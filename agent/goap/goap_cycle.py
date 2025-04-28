@@ -9,6 +9,7 @@ from agent.goap.action_planner import ActionPlanner
 # 這邊預設 goals，可以之後改成從外部讀入
 default_goals = [
     {
+        "name": "喚醒狗狗並通知主人",
         "desired_state": {
             "is_awake": True,
             "owner_notified": True
@@ -16,6 +17,7 @@ default_goals = [
         "priority": 1
     },
     {
+        "name": "讓狗狗吃飽",
         "desired_state": {
             "is_hungry": False
         },
@@ -24,9 +26,6 @@ default_goals = [
 ]
 
 def is_goal_completed(world_state: Dict[str, Any], desired_state: Dict[str, Any]) -> bool:
-    """
-    檢查世界狀態是否已達成目標所需條件
-    """
     for key, value in desired_state.items():
         if world_state.get(key) != value:
             return False
@@ -40,33 +39,30 @@ def goap_cycle(
     """
     GOAP 主循環：感知 -> 決策 -> 規劃 -> 執行 -> 更新
     """
-    # 1. 取得目前世界狀態
     world_state = world_state_manager.get_state()
 
-    # 2. 確認是否已有活躍目標
     if not goal_manager.has_active_goal():
         for goal in sorted(default_goals, key=lambda g: g["priority"]):
             if not is_goal_completed(world_state, goal["desired_state"]):
                 goal_manager.add_goal(goal)
-                print(f"[GOAP] 設定新目標: {goal}")
+                goal_name = goal.get("name", "未知目標")
+                print(f"[GOAP] 設定新目標: {goal_name}")
                 break
         else:
             print("[GOAP] 沒有需要完成的目標，結束 cycle。")
             return
 
-    # 3. 取得目前目標
     current_goal = goal_manager.get_current_goal()
     if not current_goal:
         print("[GOAP] 找不到活躍目標。")
         return
 
-    # 4. 規劃行動
     action = action_planner.plan(world_state, current_goal)
     if not action:
-        print(f"[GOAP] 無可執行的行動以達成目標: {current_goal}")
+        goal_name = current_goal.get("name", "未知目標")
+        print(f"[GOAP] 無可執行行動以達成目標: {goal_name}")
         return
 
-    # 5. 執行行動
     print(f"[GOAP] 執行行動: {action.name}")
     success = action.execute(world_state)
 
@@ -76,7 +72,7 @@ def goap_cycle(
     else:
         print(f"[GOAP] 行動執行失敗。")
 
-    # 6. 檢查目標是否完成
     if goal_manager.update_goal(world_state_manager.get_state()):
-        print(f"[GOAP] 目標已完成: {current_goal}")
+        goal_name = current_goal.get("name", "未知目標")
+        print(f"[GOAP] 目標已完成: {goal_name}")
         goal_manager.remove_goal()
