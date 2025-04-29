@@ -102,6 +102,7 @@ def record_event(event: str) -> str:
     Returns:
       str: 記錄結果。
     """
+
     return f"已記錄異常行為：{event}"
 
 def search_vector_memory(query: str) -> str:
@@ -149,16 +150,11 @@ def add_plan_item(input) -> str:
     try:
         # 如果是 str，先嘗試轉成 dict
         if isinstance(input, str):
-            print("22222222222")
-
             input_dict = json.loads(input)
         else:
-            print("111111111")
-
             input_dict = input
     except Exception as e:
         return f"解析輸入失敗：{str(e)}"
-    print("00000000000000")
 
     # 如果 input_dict 是 list，取第一個元素
     if isinstance(input_dict, list):
