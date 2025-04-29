@@ -16,7 +16,7 @@ load_dotenv()
 
 
 class VectorMemory:
-    def __init__(self, vector_store_path: str = "./memory/vector_store"):
+    def __init__(self, vector_store_path: str = "../memory/vector_store"):
         """
         初始化向量記憶系統。
         Args:

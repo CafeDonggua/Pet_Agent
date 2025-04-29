@@ -8,7 +8,7 @@ from agent.singleton_memory import vector_memory_instance
 
 
 class MemoryManager:
-    def __init__(self, memory_path: str = "./memory/memory.json"):
+    def __init__(self, memory_path: str = "../memory/memory.json"):
         self.memory_path = memory_path
         self.memory = {
             "current_state": "一般",  # 可為：一般、觀察、緊急
