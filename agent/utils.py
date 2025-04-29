@@ -41,6 +41,7 @@ def store_agent_response(response: Dict, output_path: str) -> None:
         with open(output_path, 'r', encoding='utf-8') as f:
             try:
                 existing_data = json.load(f)
+                print(f"[exit data]: {existing_data}")
             except json.JSONDecodeError:
                 # 如果解析失敗，可能檔案內並無合法 JSON 格式內容
                 existing_data = []
@@ -53,7 +54,7 @@ def store_agent_response(response: Dict, output_path: str) -> None:
         existing_data = [existing_data]
 
     # 追加新的資料
-    existing_data.append(Dict)
+    existing_data.append(response)
 
     # 寫入更新後的資料到 JSON 檔案（採用覆蓋模式）
     with open(output_path, 'w', encoding='utf-8') as f:
