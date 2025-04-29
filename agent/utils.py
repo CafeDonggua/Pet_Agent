@@ -34,5 +34,27 @@ def store_agent_response(response: Dict, output_path: str) -> None:
       output_path (str): 儲存檔案的路徑。
     """
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+    # 檢查 JSON 檔案是否存在
+    if Path(output_path).exists():
+        # 若存在，先讀取檔案內的資料
+        with open(output_path, 'r', encoding='utf-8') as f:
+            try:
+                existing_data = json.load(f)
+            except json.JSONDecodeError:
+                # 如果解析失敗，可能檔案內並無合法 JSON 格式內容
+                existing_data = []
+    else:
+        existing_data = []
+
+    # 假設我們的 JSON 檔案儲存的是一個 list
+    if not isinstance(existing_data, list):
+        # 若不是 list，可依需求將其轉換或另作處理
+        existing_data = [existing_data]
+
+    # 追加新的資料
+    existing_data.append(Dict)
+
+    # 寫入更新後的資料到 JSON 檔案（採用覆蓋模式）
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(response, f, ensure_ascii=False, indent=2)
+        json.dump(existing_data, f, ensure_ascii=False, indent=2)
