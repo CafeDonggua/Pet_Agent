@@ -83,12 +83,12 @@ class PlanManager:
         """
         檢查新任務是否與目前計畫衝突。
         Args:
-            new_task (Dict): 包含 "時間" 與 "行為" 的新任務。
+            new_task (Dict): 包含 "time" 與 "action" 的新任務。
         Returns:
             bool: 是否衝突。
         """
         for task in self.get_current_plan():
-            if task["時間"] == new_task["時間"] and task["行為"] != new_task["行為"]:
+            if task["time"] == new_task["time"] and task["action"] != new_task["action"]:
                 return True
         return False
 
