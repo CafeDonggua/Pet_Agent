@@ -49,12 +49,8 @@ async def monitor_log_file():
                 new_observation = logs[last_processed_index]
                 last_processed_index += 1
 
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                # 儲存 input
-                # store_agent_response(new_observation, f"{INPUT_DIR}/{timestamp}_input.json")
-
                 # 執行推理
-                result = agent.run(new_observation)
+                result = await asyncio.to_thread(agent.run, new_observation)
                 print(result)
                 # 儲存 output
                 store_agent_response(result, f"{OUTPUT_DIR}/output.json")
