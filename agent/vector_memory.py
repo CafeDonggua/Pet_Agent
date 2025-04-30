@@ -32,7 +32,8 @@ class VectorMemory:
         self.vector_store = None
 
         allow_dangerous = os.getenv("ALLOW_DANGEROUS_DESERIALIZATION", "False").lower() == "true"
-        if os.path.exists(self.vector_store_path) and os.path.isfile(self.vector_store_path):
+        if (os.path.exists(self.vector_store_path)
+                and os.path.isfile(os.path.join(self.vector_store_path, "index.faiss"))):
             # 如果資料庫存在，載入它
             try:
                 self.vector_store = FAISS.load_local(self.vector_store_path, self.embeddings,
