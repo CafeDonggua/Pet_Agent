@@ -5,9 +5,9 @@ from typing import List, Dict, Optional
 
 
 class PlanManager:
-    PLAN_PATH = "./memory/plan.json"
+    PLAN_PATH = "../memory/plan.json"
 
-    def __init__(self, path: str = "./memory/plan.json"):
+    def __init__(self, path: str = "../memory/plan.json"):
         self.path = path
         self.plan = {
             "daily_plan": [],
@@ -19,7 +19,11 @@ class PlanManager:
     def load(self):
         if os.path.exists(self.path):
             with open(self.path, "r", encoding="utf-8") as f:
+                print("[loadplan]: ")
+
                 self.plan = json.load(f)
+                print(self.plan)
+
         else:
             self.save()
 
