@@ -13,7 +13,8 @@ class MemoryManager:
         self.memory = {
             "current_state": "一般",  # 可為：一般、觀察、緊急
             "events": [],
-            "excluded_behaviors": []
+            "excluded_behaviors": [],
+            "abnormal_behavior":[]
         }
         self.load_memory()
 
