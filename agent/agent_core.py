@@ -29,9 +29,14 @@ class PetCareAgent:
         # 檢查是否為非異常行為
         behavior = observation.get("action")
         if self.memory.is_behavior_excluded(behavior):
+            response = f"行為「{behavior}」已標記為非異常，無需處理。"
+            self.summary_memory.add_user_message(str(observation))
+            self.summary_memory.add_ai_message(response)
+            self.memory.record_event(observation, action="略過（非異常行為）", effectiveness="無需處理")
+            self.summary_memory.get_summary()
             return {
                 "input": input_json,
-                "agent_response": f"行為「{behavior}」已標記為非異常，無需處理。"
+                "agent_response": response
             }
 
         completed = False
