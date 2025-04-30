@@ -25,6 +25,15 @@ class PetCareAgent:
         處理一筆 observation log，讓 LLM Agent 依據 GOAP 流程自主決策並執行行動。
         """
         observation = input_json
+
+        # 檢查是否為非異常行為
+        behavior = observation.get("action")
+        if self.memory.is_behavior_excluded(behavior):
+            return {
+                "input": input_json,
+                "agent_response": f"行為「{behavior}」已標記為非異常，無需處理。"
+            }
+
         completed = False
         full_steps = []
 
