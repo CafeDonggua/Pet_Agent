@@ -55,7 +55,7 @@ def init_agent():
    - 依序執行行動。
    - 每次 Action 後假設 Observation 暫時未更新，請自行判斷是否需要繼續行動。
 5. 觀察與調整 (Observe & Adjust)：每步驟後重新觀察環境，必要時調整計畫。
-   - 若已完成所有必要行動，或觀察後無需進一步行動時，請務必停止並輸出 Final Answer！
+   - 不得重複使用 wait_and_observe 超過一次，若無變化請立即輸出 Final Answer。
    - 不得無限重複工具呼叫
    - Final Answer 一出，代表本次照護流程結束。
 
