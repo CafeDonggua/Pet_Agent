@@ -13,6 +13,8 @@ while True:
     print("5. 查詢 pet state")
     print("6. 查詢 recent records")
     print("7. 查詢 excluded behaviors")
+    print("8. 寫入 excluded behaviors")
+    print("9. 查詢 abnormal behaviors")
     print("0. 離開")
     choice = input("請輸入選項：")
 
@@ -36,6 +38,12 @@ while True:
         print(resp.json())
     elif choice == "7":
         resp = requests.get(f"{BASE_URL}/excluded_behaviors")
+        print(resp.json())
+    elif choice == "8":
+        resp = requests.post(f"{BASE_URL}/excluded_behaviors", json={"behavior": "趴睡"})
+        print(resp.json())
+    elif choice == "9":
+        resp = requests.get(f"{BASE_URL}/abnormal_behaviors")
         print(resp.json())
     elif choice == "0":
         break
