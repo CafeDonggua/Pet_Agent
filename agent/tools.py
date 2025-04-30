@@ -242,7 +242,7 @@ def get_today_plan(_: Optional[str] = None) -> str:
     Returns:
         str: 今日計畫描述。
     """
-    plans = plan_manager.get_current_plan()
+    plans = plan_manager.get_daily_plan()
     if not plans:
         return "今日尚無任何計畫項目。"
     return "\n".join([f"{p['time']} - {p['action']} ({'衝突' if p.get('衝突') else '✔'})" for p in plans])
