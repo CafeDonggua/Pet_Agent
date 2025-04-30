@@ -15,6 +15,9 @@ while True:
     print("7. 查詢 excluded behaviors")
     print("8. 寫入 excluded behaviors")
     print("9. 查詢 abnormal behaviors")
+    print("10. 查詢所有向量記憶")
+    print("11. 新增一筆向量記憶")
+    print("12. 刪除一筆向量記憶")
     print("0. 離開")
     choice = input("請輸入選項：")
 
@@ -47,5 +50,16 @@ while True:
         print(resp.json())
     elif choice == "0":
         break
+    elif choice == "10":
+        resp = requests.get(f"{BASE_URL}/vector_memory/all")
+        print(resp.json())
+    elif choice == "11":
+        text = input("請輸入要新增的向量記憶內容：")
+        resp = requests.post(f"{BASE_URL}/vector_memory", json={"text": text})
+        print(resp.json())
+    elif choice == "12":
+        text = input("請輸入要刪除的向量記憶內容（需完全符合）：")
+        resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": text})
+        print(resp.json())
     else:
         print("無效的選項，請重新輸入！")

@@ -2,6 +2,7 @@
 import os
 import json
 import asyncio
+from agent.singleton_memory import vector_memory_instance as vm
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import JSONResponse
 from agent.agent_core import PetCareAgent
@@ -167,6 +168,42 @@ async def add_excluded_behaviors(item: dict):
 async def get_abnormal_behaviors():
     excluded = memory.memory.get("abnormal_behaviors", [])
     return JSONResponse(content=excluded)
+
+# ------------------- 向量記憶庫 API -------------------
+
+@app.get("/vector_memory/all")
+async def list_vector_memory():
+    docs = vm.vector_store.docstore._dict.values()
+    contents = [doc.page_content for doc in docs]
+    return {"count": len(contents), "data": contents}
+
+
+@app.post("/vector_memory")
+async def add_vector_memory(item: dict):
+    text = item.get("text")
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "缺少 'text' 欄位"})
+
+    vm.add_memory([text])
+    return {"status": "已加入向量記憶庫", "text": text}
+
+@app.delete("/vector_memory")
+async def delete_vector_memory(item: dict):
+    text = item.get("text")
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "缺少 'text' 欄位"})
+
+    docstore = vm.vector_store.docstore._dict
+    to_delete = [k for k, doc in docstore.items() if doc.page_content == text]
+
+    if not to_delete:
+        return JSONResponse(status_code=404, content={"error": "找不到完全符合的記憶"})
+
+    for key in to_delete:
+        del docstore[key]
+
+    vm.vector_store.save_local(vm.vector_store_path)
+    return {"status": f"已刪除 {len(to_delete)} 筆記憶", "text": text}
 
 # ------------------- End -------------------
 
