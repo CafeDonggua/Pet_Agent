@@ -62,12 +62,27 @@ class PlanManager:
         return self.plan.get("current_plan", [])
 
     def add_to_current_plan(self, time_str: str, action: str, source: str = "自動新增") -> None:    #新增新任務並標註是否與 daily plan 衝突
-        conflict = any(p["time"] == time_str and p["action"] != action for p in self.plan["daily_plan"])
+        conflict_D = any(p["time"] == time_str and p["action"] != action for p in self.plan["daily_plan"])
+        conflict_C = any(p["time"] == time_str and p["action"] != action for p in self.plan["current_plan"])
+
         self.plan["current_plan"].append({
             "time": time_str,
             "action": action,
             "來源": source,
-            "衝突": conflict
+            "衝突": conflict_D|conflict_C
+        })
+        self.plan["最後更新時間"] = datetime.now().isoformat(timespec='seconds')
+        self.save()
+
+    def add_to_daily_plan(self, time_str: str, action: str, source: str = "自動新增") -> None:    #新增新任務並標註是否與 daily plan 衝突
+        conflict_D = any(p["time"] == time_str and p["action"] != action for p in self.plan["daily_plan"])
+        conflict_C = any(p["time"] == time_str and p["action"] != action for p in self.plan["current_plan"])
+
+        self.plan["daily_plan"].append({
+            "time": time_str,
+            "action": action,
+            "來源": source,
+            "衝突": conflict_D|conflict_C
         })
         self.plan["最後更新時間"] = datetime.now().isoformat(timespec='seconds')
         self.save()
