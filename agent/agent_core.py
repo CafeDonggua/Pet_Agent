@@ -69,8 +69,14 @@ class PetCareAgent:
         final_output = self._extract_final_output_from_steps(full_steps)
         actions_taken = self._extract_actions_from_steps(full_steps)
 
+        ai_summary = (
+            f"本次觸發行為：{observation.get('action')}（地點：{observation.get('地點')}）\n"
+            f"執行行動：{actions_taken}\n"
+            f"最終回應：{final_output}"
+        )
+
         self.summary_memory.add_user_message(str(observation))
-        self.summary_memory.add_ai_message(final_output)
+        self.summary_memory.add_ai_message(ai_summary)
         self.memory.record_event(observation, actions_taken, effectiveness="待觀察")
         self.summary_memory.get_summary()
 
