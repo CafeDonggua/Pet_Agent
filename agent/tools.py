@@ -53,6 +53,7 @@ def adjust_aircon(target_temp: int) -> str:
     Returns:
       str: 調整結果。
     """
+    global_state.temp=target_temp
     return f"已將冷氣調整至 {target_temp}°C"
 
 
@@ -103,6 +104,9 @@ def record_event(event: str) -> str:
       str: 記錄結果。
     """
 
+    if event not in memory.memory["abnormal_behavior"]:
+        memory.memory["abnormal_behavior"].append(event)
+        memory.save_memory()
     return f"已記錄異常行為：{event}"
 
 def search_vector_memory(query: str) -> str:
