@@ -146,9 +146,27 @@ async def get_recent_records():
 
 @app.get("/excluded_behaviors")
 async def get_excluded_behaviors():
-    excluded = memory.memory.get("excluded_behaviors", [])
-    return JSONResponse(content=excluded)
+    return JSONResponse(content=memory.memory.get("excluded_behaviors", []))
 
+
+@app.post("/excluded_behaviors")
+async def add_excluded_behaviors(item: dict):
+    behavior = item.get("behavior")
+    if not behavior:
+        return JSONResponse(status_code=400, content={"error": "缺少 'behavior' 欄位"})
+
+    if behavior not in memory.memory["excluded_behaviors"]:
+        memory.memory["excluded_behaviors"].append(behavior)
+        memory.save_memory()
+        return {"status": f"已加入排除行為：{behavior}"}
+    else:
+        return {"status": f"行為「{behavior}」已經在排除清單中"}
+
+
+@app.get("/abnormal_behaviors")
+async def get_abnormal_behaviors():
+    excluded = memory.memory.get("abnormal_behaviors", [])
+    return JSONResponse(content=excluded)
 
 # ------------------- End -------------------
 
