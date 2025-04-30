@@ -107,7 +107,7 @@ async def add_daily_plan(item: dict):
     if not all(k in item for k in ["time", "action"]):
         return JSONResponse(status_code=400, content={"error": "需要 time 和 action 欄位"})
     conflict_result = check_daily_plan_conflict(item)
-    if "衝突" in conflict_result or "注意" in conflict_result:
+    if "衝突" in conflict_result or "注意" in conflict_result or "已有相同" in conflict_result:
         return JSONResponse(status_code=400, content={"error": f"新增失敗：{conflict_result}"})
 
     add_plan_item(item)
@@ -125,7 +125,7 @@ async def add_current_plan(item: dict):
     if not all(k in item for k in ["time", "action"]):
         return JSONResponse(status_code=400, content={"error": "需要 time 和 action 欄位"})
     conflict_result = check_daily_plan_conflict(item)
-    if "衝突" in conflict_result or "注意" in conflict_result:
+    if "衝突" in conflict_result or "注意" in conflict_result or "已有相同" in conflict_result:
         return JSONResponse(status_code=400, content={"error": f"新增失敗：{conflict_result}"})
 
     add_plan_item(item)
