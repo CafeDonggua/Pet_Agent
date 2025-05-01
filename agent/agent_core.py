@@ -87,7 +87,7 @@ class PetCareAgent:
 
             if not completed:
                 # 如果還沒完成，模擬新的 observation
-                observation = self._simulate_observation(steps)
+                observation = self._simulate_new_observation(steps)
 
         # 最後一次 memory更新
         final_output = self._extract_final_output_from_steps(full_steps)
@@ -139,7 +139,7 @@ class PetCareAgent:
                 "地點": "原地"
             }
 
-        all_logs = load_input_json("./input/sample.json")
+        all_logs = load_input_json("../input/sample.json")
         future_logs = [log for log in all_logs if log["time"] > self.current_time]
 
         if future_logs:
