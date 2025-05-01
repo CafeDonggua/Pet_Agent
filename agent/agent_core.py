@@ -1,7 +1,7 @@
 # agent/agent_core.py
 
 from typing import Dict, List
-from agent.agent_init import init_agent
+from agent.agent_init import init_agent, get_summarizer
 from agent.memory_manager import memory
 from agent.singleton_plan import plan_manager_instance as plan_manager
 from agent.context import global_state
@@ -22,17 +22,27 @@ class PetCareAgent:
         self.event_log = []
         self.current_time = None
         self.last_summary_text = ""
+        self.summarizer = get_summarizer()
 
     def run_with_log_window(self, log_list: List[Dict], current_time: str) -> Dict:
         """
         從五分鐘 log 中摘要記憶，選定 current_time 起始 observation，依序推理。
         """
-        # 1. 記憶摘要寫入
-        summary = "以下是過去五分鐘的觀察紀錄：\\n"
-        for log in log_list:
-            summary += f"- 時間：{log['time']}，行為：{log['action']}，地點：{log.get('地點', '未知')}\\n"
 
-        self.last_summary_text = summary.strip()
+        # 1. 記憶摘要寫入
+        summary_list = [f"時間：{log['time']}，行為：{log['action']}，地點：{log.get('地點', '未知')}" for log in log_list]
+        raw_summary = "\n".join(summary_list)
+
+        # 使用 LLM 摘要摘要文字
+        summary_prompt = (
+            "請你根據以下過去五分鐘的觀察紀錄，產生一句話摘要描述，描述狗狗的主要活動與整體狀態：\n"
+            f"{raw_summary}"
+        )
+
+        response = self.summarizer.invoke(summary_prompt)
+        summary_text = response if isinstance(response, str) else str(response)
+
+        self.last_summary_text = summary_text.strip()
         self.summary_memory.add_user_message(self.last_summary_text)
         self.summary_memory.add_ai_message("收到過去五分鐘的摘要紀錄")
 

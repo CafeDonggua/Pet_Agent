@@ -7,15 +7,20 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from pathlib import Path
 from agent.tools import get_toolkit
+from langchain.chat_models import ChatOpenAI
 
+load_dotenv(Path("..\\.env"))
+load_dotenv(find_dotenv())
+chat_key = os.getenv("OPENAI_CHAT_KEY")
+summarizer = ChatOpenAI(temperature=0, model_name="gpt-4o-mini", api_key=chat_key)
+
+def get_summarizer():
+    return summarizer
 
 def init_agent():
     """
     初始化新的 GOAP 思考流程 LLM Agent（內部自己抓工具）
     """
-    load_dotenv(Path("..\\.env"))
-    load_dotenv(find_dotenv())
-    chat_key = os.getenv("OPENAI_CHAT_KEY")
     chat_model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 
     llm = ChatOpenAI(
