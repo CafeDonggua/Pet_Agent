@@ -172,6 +172,39 @@ async def get_abnormal_behaviors():
     excluded = memory.memory.get("abnormal_behaviors", [])
     return JSONResponse(content=excluded)
 
+@app.delete("/excluded_behaviors")
+async def delete_excluded_behaviors(item: dict):
+    behavior = item.get("behavior")
+    if not behavior:
+        return JSONResponse(status_code=400, content={"error": "缺少 'behavior' 欄位"})
+
+    if behavior in memory.memory["excluded_behaviors"]:
+        memory.memory["excluded_behaviors"].remove(behavior)
+        memory.save_memory()
+        return {"status": f"已從排除清單中移除：{behavior}"}
+
+    else:
+        return JSONResponse(status_code=404, content={"error": f"行為「{behavior}」不存在於排除清單中"})
+
+
+@app.delete("/current_plan")
+async def delete_current_plan(item: dict):
+    time_str = item.get("time")
+    action = item.get("action")
+
+    if not time_str or not action:
+        return JSONResponse(status_code=400, content={"error": "需要 time 和 action 欄位"})
+
+    original_plan = plan_manager.plan["current_plan"]
+    new_plan = [p for p in original_plan if not (p["time"] == time_str and p["action"] == action)]
+
+    if len(original_plan) == len(new_plan):
+        return JSONResponse(status_code=404, content={"error": "找不到指定的計畫項目"})
+
+    plan_manager.plan["current_plan"] = new_plan
+    plan_manager.save()
+
+    return {"status": f"已刪除 time={time_str}, action={action} 的計畫"}
 
 # ------------------- 向量記憶庫 API -------------------
 

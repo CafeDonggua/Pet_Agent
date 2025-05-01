@@ -18,6 +18,9 @@ while True:
     print("10. 查詢所有向量記憶")
     print("11. 新增一筆向量記憶")
     print("12. 刪除一筆向量記憶")
+    print("13. 查詢狗狗現在狀態")
+    print("14. 刪除一筆 excluded behaviors")
+    print("15. 刪除一筆 current plan")
     print("0. 離開")
     choice = input("請輸入選項：")
 
@@ -48,8 +51,6 @@ while True:
     elif choice == "9":
         resp = requests.get(f"{BASE_URL}/abnormal_behaviors")
         print(resp.json())
-    elif choice == "0":
-        break
     elif choice == "10":
         resp = requests.get(f"{BASE_URL}/vector_memory/all")
         print(resp.json())
@@ -64,6 +65,14 @@ while True:
     elif choice == "13":
         resp = requests.post(f"{BASE_URL}/ask_agent", json={"text": "狗狗現在情緒正常嗎？"})
         print(resp.json())
+    elif choice == "14":
+        resp = requests.delete(f"{BASE_URL}/excluded_behaviors", json={"behavior": "趴睡"})
+        print(resp.json())
+    elif choice == "15":
+        resp = requests.delete(f"{BASE_URL}/current_plan", json={"time": "20250429160000", "action": "散步"})
+        print(resp.json())
+    elif choice == "0":
+        break
 
     else:
         print("無效的選項，請重新輸入！")
