@@ -1,4 +1,6 @@
 # agent/server.py
+
+from fastapi import Request
 import os
 import json
 import asyncio
@@ -13,6 +15,7 @@ from agent.utils import load_input_json, store_agent_response
 from datetime import datetime
 from pathlib import Path
 from agent.tools import check_daily_plan_conflict, add_plan_item
+from langchain_openai import ChatOpenAI
 
 app = FastAPI()
 
@@ -169,6 +172,7 @@ async def get_abnormal_behaviors():
     excluded = memory.memory.get("abnormal_behaviors", [])
     return JSONResponse(content=excluded)
 
+
 # ------------------- 向量記憶庫 API -------------------
 
 @app.get("/vector_memory/all")
@@ -187,6 +191,7 @@ async def add_vector_memory(item: dict):
     vm.add_memory([text])
     return {"status": "已加入向量記憶庫", "text": text}
 
+
 @app.delete("/vector_memory")
 async def delete_vector_memory(item: dict):
     text = item.get("text")
@@ -204,6 +209,31 @@ async def delete_vector_memory(item: dict):
 
     vm.vector_store.save_local(vm.vector_store_path)
     return {"status": f"已刪除 {len(to_delete)} 筆記憶", "text": text}
+
+
+@app.post("/ask_agent")
+async def ask_agent(item: dict):
+    text = item.get("text")
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "缺少 'text'"})
+
+    # 1. 查詢 FAISS 記憶
+    results = vm.query_memory(text, top_k=5)
+    context = "\n".join([f"- {r['text']}" for r in results]) or "（目前無可參考的記憶）"
+    # 2. 組 prompt 給模型
+    prompt = f"""你是一個了解狗狗行為的助理。根據以下記憶片段，回答問題：
+記憶內容：
+{context}
+
+問題：{text}
+請根據上面資訊，用中文回答。"""
+
+    # 3. 呼叫 GPT 模型
+    chat = ChatOpenAI(model="gpt-4o-mini", temperature=0.5, api_key=os.getenv("OPENAI_CHAT_KEY"))
+    answer = chat.invoke(prompt).content
+
+    return {"answer": answer, "reference": context}
+
 
 # ------------------- End -------------------
 
