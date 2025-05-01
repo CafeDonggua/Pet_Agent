@@ -63,8 +63,12 @@ while True:
         resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": text})
         print(resp.json())
     elif choice == "13":
-        resp = requests.post(f"{BASE_URL}/ask_agent", json={"text": "狗狗現在情緒正常嗎？"})
-        print(resp.json())
+        resp = requests.post(f"{BASE_URL}/ask_agent", json={"text": "為什麼狗狗喜歡翻滾"})
+        try:
+            print(resp.json())
+        except Exception as e:
+            print("找不到類似紀錄")
+
     elif choice == "14":
         resp = requests.delete(f"{BASE_URL}/excluded_behaviors", json={"behavior": "趴睡"})
         print(resp.json())
