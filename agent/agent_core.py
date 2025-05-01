@@ -1,10 +1,11 @@
 # agent/agent_core.py
 
-from typing import Dict
+from typing import Dict, List
 from agent.agent_init import init_agent
 from agent.memory_manager import memory
 from agent.singleton_plan import plan_manager_instance as plan_manager
 from agent.context import global_state
+from agent.utils import load_input_json
 from agent.tools import get_toolkit
 
 
@@ -19,6 +20,28 @@ class PetCareAgent:
         self.plan_manager = plan_manager
         self.state = self.memory.get_current_state()
         self.event_log = []
+        self.current_time = None
+        self.last_summary_text = ""
+
+    def run_with_log_window(self, log_list: List[Dict], current_time: str) -> Dict:
+        """
+        從五分鐘 log 中摘要記憶，選定 current_time 起始 observation，依序推理。
+        """
+        # 1. 記憶摘要寫入
+        summary = "以下是過去五分鐘的觀察紀錄：\\n"
+        for log in log_list:
+            summary += f"- 時間：{log['time']}，行為：{log['action']}，地點：{log.get('地點', '未知')}\\n"
+
+        self.last_summary_text = summary.strip()
+        self.summary_memory.add_user_message(self.last_summary_text)
+        self.summary_memory.add_ai_message("收到過去五分鐘的摘要紀錄")
+
+        self.current_time = current_time  # 儲存目前時間作為查詢起點
+        start_obs = next((log for log in log_list if log["time"] == current_time), None)
+        if not start_obs:
+            return {"error": f"找不到 {current_time} 的 observation"}
+
+        return self.run(start_obs)
 
     def run(self, input_json: Dict) -> Dict:
         """
@@ -28,6 +51,7 @@ class PetCareAgent:
 
         # 檢查是否為非異常行為
         behavior = observation.get("action")
+
         if self.memory.is_behavior_excluded(behavior):
             response = f"行為「{behavior}」已標記為非異常，無需處理。"
             self.summary_memory.add_user_message(str(observation))
@@ -63,9 +87,9 @@ class PetCareAgent:
 
             if not completed:
                 # 如果還沒完成，模擬新的 observation
-                observation = self._simulate_new_observation(steps)
+                observation = self._simulate_observation(steps)
 
-            # 最後一次 memory更新
+        # 最後一次 memory更新
         final_output = self._extract_final_output_from_steps(full_steps)
         actions_taken = self._extract_actions_from_steps(full_steps)
 
@@ -104,6 +128,30 @@ class PetCareAgent:
                         actions.append(f"{a.tool}({a.tool_input})")
         return " -> ".join(actions) if actions else "無行動"
 
+    def _simulate_observation(self, steps) -> Dict:
+        """
+        改為使用 observation_buffer 作為模擬觀察來源。
+        """
+        if not self.current_time:
+            return {
+                "time": "模擬時間",
+                "action": "尚未設定 current_time，無法觀察",
+                "地點": "原地"
+            }
+
+        all_logs = load_input_json("./input/sample.json")
+        future_logs = [log for log in all_logs if log["time"] > self.current_time]
+
+        if future_logs:
+            next_obs = future_logs[0]
+            self.current_time = next_obs["time"]
+            return next_obs
+
+        return {
+            "time": "模擬時間",
+            "action": "觀察不到新狀態",
+            "地點": "原地"
+        }
     def _simulate_new_observation(self, steps) -> Dict:
         """
         根據最近的行動模擬一個更合理的新的 Observation。

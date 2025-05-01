@@ -12,7 +12,7 @@ from agent.memory_manager import memory
 from agent.plan_manager import PlanManager
 from agent.singleton_plan import plan_manager_instance as plan_manager
 from agent.utils import load_input_json, store_agent_response
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from agent.tools import check_daily_plan_conflict, add_plan_item
 from langchain_openai import ChatOpenAI
@@ -30,10 +30,46 @@ last_processed_index = 0
 LOG_FILE_PATH = "../input/log.json"
 INPUT_DIR = "../input"
 OUTPUT_DIR = "../output"
-
+latest_sim_time = datetime.strptime("20250429120000", "%Y%m%d%H%M%S")  # 初始模擬時間
 # 確保 input/output 目錄存在
 os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+async def periodic_log_monitor():
+    global latest_sim_time
+    while True:
+        try:
+            log_data = load_input_json("../input/log.json")
+            if not log_data:
+                print("大開送你300")
+                await asyncio.sleep(300)
+                continue
+
+            next_sim_time = latest_sim_time + timedelta(minutes=5)
+            five_min_ago = latest_sim_time.strftime("%Y%m%d%H%M%S")
+            current_time = next_sim_time.strftime("%Y%m%d%H%M%S")
+            print("逃過300-1")
+            print(log_data)
+            print(next_sim_time)
+            print(five_min_ago)
+            print(current_time)
+            window_logs = [log for log in log_data if five_min_ago <= log["time"] <= current_time]
+            if not window_logs:
+                latest_sim_time = next_sim_time  # 仍然推進時間
+                print("大開送你300")
+
+                await asyncio.sleep(300)
+                continue
+            print("逃過300-2")
+            # 呼叫 agent 批次推理方法
+            result = agent.run_with_log_window(window_logs, current_time)
+            await broadcast(result)
+
+            latest_sim_time = next_sim_time  # 成功處理後才更新模擬時間
+        except Exception as e:
+            print(f"[Server Error] {str(e)}")
+
+        await asyncio.sleep(300)  # 每 5 分鐘執行一次
 
 
 async def monitor_log_file():
@@ -69,7 +105,7 @@ async def monitor_log_file():
 @app.on_event("startup")
 async def startup_event():
     # 啟動背景任務
-    asyncio.create_task(monitor_log_file())
+    asyncio.create_task(periodic_log_monitor())
 
 
 async def broadcast(message: dict):
