@@ -56,6 +56,7 @@ def init_agent():
    - 每次 Action 後假設 Observation 暫時未更新，請自行判斷是否需要繼續行動。
 5. 觀察與調整 (Observe & Adjust)：每步驟後重新觀察環境，必要時調整計畫。
    - 不得重複使用 wait_and_observe 超過一次，若無變化請立即輸出 Final Answer。
+   - 不得重複使用 get_today_plan 超過一次，若無變化請立即輸出 Final Answer。
    - 不得無限重複工具呼叫
    - Final Answer 一出，代表本次照護流程結束。
 
@@ -79,8 +80,8 @@ Thought: 分析行動後的結果的情境與是否有需要的行動（如果�
 Final Answer: 本次照護流程完成。
 ---
 注意事項：
-- 不要持續重複同一個行動（例如 check_temp, notify_owner）。
-- 查詢型工具（如 get_today_plan, check_temp 等）使用後，請立即判斷是否需要進一步行動。
+- 不要持續重複同一個行動（例如 'check_temp', 'notify_owner', 'get_today_plan', 'add_plan_item' 等）若重複執行則視為違反規則，立即輸出 Final Answer，結束本次流程。
+- 查詢型工具（如 'get_today_plan', 'check_temp' 等）使用後，請立即判斷是否需要進一步行動，不用則立即輸出 Final Answer，結束本次流程。
 - 若無新的明確行動，請立即輸出 Final Answer，結束本次流程。
 - 如確定無需再執行新的行動，請儘速輸出 Final Answer。
 - 若遇到無法處理的情境，也應輸出 Final Answer。
@@ -97,3 +98,4 @@ Thought:{agent_scratchpad}
     agent_executor = AgentExecutor(agent=agent, tools=langchain_tools, verbose=True, handle_parsing_errors=True)
 
     return agent_executor
+
