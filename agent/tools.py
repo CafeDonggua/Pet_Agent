@@ -189,7 +189,6 @@ def check_daily_plan_conflict(input) -> str:
         # 如果是 str，先嘗試轉成 dict
         if isinstance(input, str):
             input_dict = json.loads(input)
-            print(input_dict)
         else:
             input_dict = input
     except Exception as e:

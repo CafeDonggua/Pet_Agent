@@ -19,11 +19,7 @@ class PlanManager:
     def load(self):
         if os.path.exists(self.path):
             with open(self.path, "r", encoding="utf-8") as f:
-                print("[loadplan]: ")
-
                 self.plan = json.load(f)
-                print(self.plan)
-
         else:
             self.save()
 
