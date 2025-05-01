@@ -41,35 +41,27 @@ async def periodic_log_monitor():
         try:
             log_data = load_input_json("../input/log.json")
             if not log_data:
-                print("大開送你300")
                 await asyncio.sleep(300)
                 continue
 
             next_sim_time = latest_sim_time + timedelta(minutes=5)
             five_min_ago = latest_sim_time.strftime("%Y%m%d%H%M%S")
             current_time = next_sim_time.strftime("%Y%m%d%H%M%S")
-            print("逃過300-1")
-            print(log_data)
-            print(next_sim_time)
-            print(five_min_ago)
-            print(current_time)
             window_logs = [log for log in log_data if five_min_ago <= log["time"] <= current_time]
-            if not window_logs:
-                latest_sim_time = next_sim_time  # 仍然推進時間
-                print("大開送你300")
 
-                await asyncio.sleep(300)
-                continue
-            print("逃過300-2")
-            # 呼叫 agent 批次推理方法
-            result = agent.run_with_log_window(window_logs, current_time)
-            await broadcast(result)
+            if window_logs:
+                result = agent.run_with_log_window(window_logs, current_time)
+                await broadcast(result)
+            else:
+                print("此時段無資料，跳過但仍推進時間")
 
-            latest_sim_time = next_sim_time  # 成功處理後才更新模擬時間
+            #  每次都推進
+            latest_sim_time = next_sim_time
+
         except Exception as e:
             print(f"[Server Error] {str(e)}")
 
-        await asyncio.sleep(300)  # 每 5 分鐘執行一次
+        await asyncio.sleep(1)  # 每 5 分鐘執行一次
 
 
 async def monitor_log_file():
@@ -208,6 +200,7 @@ async def get_abnormal_behaviors():
     excluded = memory.memory.get("abnormal_behaviors", [])
     return JSONResponse(content=excluded)
 
+
 @app.delete("/excluded_behaviors")
 async def delete_excluded_behaviors(item: dict):
     behavior = item.get("behavior")
@@ -242,6 +235,7 @@ async def delete_current_plan(item: dict):
 
     return {"status": f"已刪除 time={time_str}, action={action} 的計畫"}
 
+
 # ------------------- 向量記憶庫 API -------------------
 
 @app.get("/vector_memory/all")
@@ -268,6 +262,7 @@ async def delete_vector_memory(item: dict):
         return JSONResponse(status_code=400, content={"error": "缺少 'text' 欄位"})
 
     docstore = vm.vector_store.docstore._dict
+
     to_delete = [k for k, doc in docstore.items() if doc.page_content == text]
 
     if not to_delete:
@@ -276,7 +271,14 @@ async def delete_vector_memory(item: dict):
     for key in to_delete:
         del docstore[key]
 
-    vm.vector_store.save_local(vm.vector_store_path)
+    # 移除對應的 index entry
+    new_docs = list(docstore.values())
+    new_texts = [doc.page_content for doc in new_docs]
+
+    # 重新建立 vector store（簡單暴力但正確）
+    vm.initialize_vector_store()
+    vm.add_memory(new_texts)
+
     return {"status": f"已刪除 {len(to_delete)} 筆記憶", "text": text}
 
 
