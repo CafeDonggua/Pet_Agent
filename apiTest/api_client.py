@@ -3,6 +3,16 @@
 import requests
 
 BASE_URL = "http://localhost:8000"
+sample_memories_A = [
+    "狗狗在興奮時喜歡搖尾巴",
+    "當狗狗肚子餓時會坐在餵食機旁邊等待。"
+]
+
+sample_memories_B = [
+    "狗狗通常在主人快到家的時候會很興奮。",
+    "下午四點時候狗狗會在沙發上迎接主人回家。"
+]
+
 
 while True:
     print("\n===== PetCare Agent API 測試 =====")
@@ -18,9 +28,13 @@ while True:
     print("10. 查詢所有向量記憶")
     print("11. 新增一筆向量記憶")
     print("12. 刪除一筆向量記憶")
-    print("13. 查詢狗狗現在狀態")
+    print("13. 詢問 Agent 關於狗狗的問題")
     print("14. 刪除一筆 excluded behaviors")
     print("15. 刪除一筆 current plan")
+    print("16. 設定Demo Dog A")
+    print("17. 刪除一筆Dog A 記憶")
+    print("18. 設定Demo Dog A")
+    print("19. 刪除一筆Dog A 記憶")
     print("0. 離開")
     choice = input("請輸入選項：")
 
@@ -63,9 +77,10 @@ while True:
         resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": text})
         print(resp.json())
     elif choice == "13":
-        resp = requests.post(f"{BASE_URL}/ask_agent", json={"text": "為什麼狗狗喜歡翻滾"})
+        text = input("請提問：")
+        resp = requests.post(f"{BASE_URL}/ask_agent", json={"text": text})
         try:
-            print(resp.json())
+            print(resp.json()["answer"])
         except Exception as e:
             print("找不到類似紀錄")
 
@@ -75,6 +90,21 @@ while True:
     elif choice == "15":
         resp = requests.delete(f"{BASE_URL}/current_plan", json={"time": "20250429160000", "action": "散步"})
         print(resp.json())
+    elif choice == "16":
+        for memory in sample_memories_A:
+            resp = requests.post(f"{BASE_URL}/vector_memory", json={"text": memory})
+            print(resp.json())
+    elif choice == "17":
+        resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": "狗狗在興奮時喜歡搖尾巴"})
+        print(resp.json())
+    elif choice == "18":
+        for memory in sample_memories_B:
+            resp = requests.post(f"{BASE_URL}/vector_memory", json={"text": memory})
+            print(resp.json())
+    elif choice == "19":
+        for memory in sample_memories_B:
+            resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": memory})
+            print(resp.json())
     elif choice == "0":
         break
 

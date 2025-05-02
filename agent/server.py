@@ -50,8 +50,7 @@ async def periodic_log_monitor():
             window_logs = [log for log in log_data if five_min_ago <= log["time"] <= current_time]
 
             if window_logs:
-                result = agent.run_with_log_window(window_logs, current_time)
-                await broadcast(result)
+                asyncio.create_task(process_window_logs(window_logs, current_time))
             else:
                 print("此時段無資料，跳過但仍推進時間")
 
@@ -93,6 +92,9 @@ async def monitor_log_file():
         except Exception as e:
             print("[Log Monitor Error]", e)
 
+async def process_window_logs(logs, current_time):
+    result = await agent.run_with_log_window(logs, current_time)
+    await broadcast(result)
 
 @app.on_event("startup")
 async def startup_event():
@@ -281,6 +283,14 @@ async def delete_vector_memory(item: dict):
 
     return {"status": f"已刪除 {len(to_delete)} 筆記憶", "text": text}
 
+import re
+
+def extract_clean_text(raw: str) -> str:
+    # 清除 "content='...'" 的 wrapper
+    match = re.search(r"content='(.*?)'", raw)
+    if match:
+        return match.group(1)
+    return raw.strip().split(" additional_kwargs")[0]  # 最保險
 
 @app.post("/ask_agent")
 async def ask_agent(item: dict):
@@ -290,7 +300,9 @@ async def ask_agent(item: dict):
 
     # 1. 查詢 FAISS 記憶
     results = vm.query_memory(text, top_k=5)
-    context = "\n".join([f"- {r['text']}" for r in results]) or "（目前無可參考的記憶）"
+    context = "\n".join([f"- {extract_clean_text(r['text'])}" for r in results]) or "（目前無可參考的記憶）"
+
+    #context = "\n".join([f"- {r['text']}" for r in results]) or "（目前無可參考的記憶）"
     # 2. 組 prompt 給模型
     prompt = f"""你是一個了解狗狗行為的助理。根據以下記憶片段，回答問題：
 記憶內容：
@@ -303,7 +315,10 @@ async def ask_agent(item: dict):
     chat = ChatOpenAI(model="gpt-4o-mini", temperature=0.5, api_key=os.getenv("OPENAI_CHAT_KEY"))
     answer = chat.invoke(prompt).content
 
-    return {"answer": answer, "reference": context}
+    # 格式化結果
+    formatted = f"Agent: {answer}\n\n參考記憶：\n{context}"
+
+    return {"answer": formatted}
 
 
 # ------------------- End -------------------
