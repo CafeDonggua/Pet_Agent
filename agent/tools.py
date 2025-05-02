@@ -1,7 +1,5 @@
 from typing import Optional, Dict
 
-from pydantic_settings.sources import import_toml
-
 from agent.context import global_state
 from agent.memory_manager import memory
 from agent.singleton_memory import vector_memory_instance

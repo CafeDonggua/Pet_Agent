@@ -1,7 +1,7 @@
 # vector_memory.py
 import time
 
-import faiss
+import faiss # faiss_cpu
 import os
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
