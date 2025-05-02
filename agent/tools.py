@@ -175,7 +175,7 @@ def add_plan_item(input) -> str:
 
 def check_daily_plan_conflict(input) -> str:
     """
-        檢查某個指定時間的行為是否與每日固定計畫 (daily_plan) 衝突。
+        檢查想要新增的計畫是否與 daily plan 以及 current plan 衝突。
 
         Args:
             input (str or dict): JSON 格式字串或字典

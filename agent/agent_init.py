@@ -52,7 +52,7 @@ def init_agent():
     - 注意：每次行動後，除非有新的 Observation，否則環境狀態不會改變。
 2. 目標決策 (Goal Selection)：
     - 根據 Observation 判斷是否需要新增 Current Plan。
-   - 如需新增，請使用工具 `check_daily_plan_conflict` 確認是否與主計畫衝突。
+    - 如需新增活動計畫，請使用工具 `check_daily_plan_conflict` 確認是否與 daily plan 以及 current plan 衝突。
 3. 規劃 (Planning)：安排合理順序的行動步驟。
    - 合理規劃行動順序。
    - 每個行動如果需要使用工具，則要選擇一個合適的工具（Tools）, should be one of [{tool_names}]
