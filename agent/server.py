@@ -144,12 +144,23 @@ async def add_current_plan(item: dict):
 async def get_pet_state():
     return {"current_state": memory.get_current_state()}
 
+def format_recent_events(events: list) -> list:
+    formatted = []
+    for e in events:
+        trigger = e.get("trigger", {})
+        formatted.append({
+            "時間": trigger.get("time", ""),
+            "行為": trigger.get("action", ""),
+            "地點": trigger.get("地點", ""),
+            "採取行動": e.get("action", ""),
+        })
+    return formatted
 
 @app.get("/recent_records")
 async def get_recent_records():
-    # 回傳最近 10 筆行為紀錄
     events = memory.memory.get("events", [])
-    return JSONResponse(content=events[-10:])
+    formatted = format_recent_events(events[-10:])
+    return JSONResponse(content=formatted)
 
 
 @app.get("/excluded_behaviors")
