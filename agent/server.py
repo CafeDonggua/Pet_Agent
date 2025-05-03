@@ -1,19 +1,15 @@
 # agent/server.py
 
-from fastapi import Request
 import os
-import json
 import asyncio
 from agent.singleton_memory import vector_memory_instance as vm
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from agent.agent_core import PetCareAgent
 from agent.memory_manager import memory
-from agent.plan_manager import PlanManager
 from agent.singleton_plan import plan_manager_instance as plan_manager
 from agent.utils import load_input_json, store_agent_response
 from datetime import datetime, timedelta
-from pathlib import Path
 from agent.tools import check_daily_plan_conflict, add_plan_item
 from langchain_openai import ChatOpenAI
 
