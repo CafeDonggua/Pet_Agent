@@ -4,7 +4,7 @@ import requests
 
 BASE_URL = "http://localhost:8000"
 sample_memories_A = [
-    "狗狗在興奮時喜歡搖尾巴",
+    "狗狗在肚子餓的時候會搖尾巴",
     "當狗狗肚子餓時會坐在餵食機旁邊等待。"
 ]
 
@@ -30,10 +30,10 @@ while True:
     print("12. 詢問 Agent 關於狗狗的問題")
     print("13. 刪除一筆 excluded behaviors")
     print("14. 刪除一筆 current plan")
-    print("15. 設定 Dog A")
-    print("16. 刪除一筆 Dog A 記憶")
-    print("17. 設定 Dog B")
-    print("18. 刪除 Dog B 記憶")
+    print("15. 設定記憶 A")
+    print("16. 刪除記憶 A")
+    print("17. 設定記憶 B")
+    print("18. 刪除記憶 B")
     print("0. 離開")
     choice = input("請輸入選項：")
 
