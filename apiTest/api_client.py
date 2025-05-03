@@ -9,8 +9,8 @@ sample_memories_A = [
 ]
 
 sample_memories_B = [
-    "狗狗通常在主人快到家的時候會很興奮。",
-    "下午四點時候狗狗會在沙發上迎接主人回家。"
+    "狗狗知道攝影機的存在，也知道主人能透過攝影機看著他，所以想要吸引主人注意。",
+    "狗狗喜歡翻滾玩耍。"
 ]
 
 
@@ -31,10 +31,10 @@ while True:
     print("13. 詢問 Agent 關於狗狗的問題")
     print("14. 刪除一筆 excluded behaviors")
     print("15. 刪除一筆 current plan")
-    print("16. 設定Demo Dog A")
-    print("17. 刪除一筆Dog A 記憶")
-    print("18. 設定Demo Dog A")
-    print("19. 刪除一筆Dog A 記憶")
+    print("16. 設定 Dog A")
+    print("17. 刪除一筆 Dog A 記憶")
+    print("18. 設定 Dog B")
+    print("19. 刪除 Dog B 記憶")
     print("0. 離開")
     choice = input("請輸入選項：")
 
@@ -83,6 +83,7 @@ while True:
             print(resp.json()["answer"])
         except Exception as e:
             print("找不到類似紀錄")
+        text = input("按Enter以繼續")
 
     elif choice == "14":
         resp = requests.delete(f"{BASE_URL}/excluded_behaviors", json={"behavior": "趴睡"})
@@ -94,17 +95,25 @@ while True:
         for memory in sample_memories_A:
             resp = requests.post(f"{BASE_URL}/vector_memory", json={"text": memory})
             print(resp.json())
+        text = input("按Enter以繼續")
+
     elif choice == "17":
         resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": "狗狗在興奮時喜歡搖尾巴"})
         print(resp.json())
+        text = input("按Enter以繼續")
+
     elif choice == "18":
         for memory in sample_memories_B:
             resp = requests.post(f"{BASE_URL}/vector_memory", json={"text": memory})
             print(resp.json())
+        text = input("按Enter以繼續")
+
     elif choice == "19":
         for memory in sample_memories_B:
             resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": memory})
             print(resp.json())
+            text = input("按Enter以繼續")
+
     elif choice == "0":
         break
 
