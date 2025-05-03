@@ -51,7 +51,7 @@ class PetCareAgent:
         if not start_obs:
             return {"error": f"找不到 {current_time} 的 observation"}
 
-        return await self.run(start_obs)
+        return await  self.run(start_obs)
 
     async def run(self, input_json: Dict) -> Dict:
         """

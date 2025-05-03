@@ -12,6 +12,7 @@ from agent.utils import load_input_json, store_agent_response
 from datetime import datetime, timedelta
 from agent.tools import check_daily_plan_conflict, add_plan_item
 from langchain_openai import ChatOpenAI
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI()
 
@@ -20,6 +21,9 @@ agent = PetCareAgent()
 
 # WebSocket 連線列表
 active_connections = []
+
+executor = ThreadPoolExecutor()
+
 
 # 讀取 Log 用的紀錄
 last_processed_index = 0
@@ -56,42 +60,16 @@ async def periodic_log_monitor():
         except Exception as e:
             print(f"[Server Error] {str(e)}")
 
-        await asyncio.sleep(1)  # 每 5 分鐘執行一次
-
-
-async def monitor_log_file():
-    """
-    背景任務：每5秒掃描一次 sample.json，偵測新的一筆 observation
-    """
-    global last_processed_index
-    while True:
-        await asyncio.sleep(5)
-        if not os.path.exists(LOG_FILE_PATH):
-            continue
-
-        try:
-            logs = load_input_json(LOG_FILE_PATH)
-            if last_processed_index < len(logs):
-                # 處理新的 observation
-                new_observation = logs[last_processed_index]
-                last_processed_index += 1
-
-                # 執行推理
-                result = await asyncio.to_thread(agent.run, new_observation)
-                print(result)
-                # 儲存 output
-                store_agent_response(result, f"{OUTPUT_DIR}/output.json")
-
-                # 推播給所有 WebSocket
-                await broadcast(result)
-
-        except Exception as e:
-            print("[Log Monitor Error]", e)
+        await asyncio.sleep(30)
 
 async def process_window_logs(logs, current_time):
-    result = await agent.run_with_log_window(logs, current_time)
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(executor, lambda: asyncio.run(agent.run_with_log_window(logs, current_time)))
+
+    store_agent_response(result, f"{OUTPUT_DIR}/output.json")
     await broadcast(result)
 
+# 啟動背景任務：監控 log.json 並推理
 @app.on_event("startup")
 async def startup_event():
     # 啟動背景任務
