@@ -73,7 +73,6 @@ class VectorMemory:
         for f in os.listdir(self.vector_store_path):
             print(" -", f)
 
-        time.sleep(1)  # 保險起見給它一點緩衝
 
     def add_memory(self, texts: List[str]) -> None:
         """
@@ -120,7 +119,6 @@ class VectorMemory:
         print(f"[AddMemory] 資料應儲存在：{os.path.abspath(self.vector_store_path)}")
         print(f"[AddMemory] 資料夾內容：{os.listdir(self.vector_store_path)}")
 
-        time.sleep(1)  # 保險起見給它一點緩衝
 
     def query_memory(self, query: str, top_k: int = 5) -> List[Dict]:
         """

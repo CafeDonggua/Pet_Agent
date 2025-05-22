@@ -62,9 +62,6 @@ while True:
         text = input("請輸入要刪除的向量記憶內容（需完全符合）：")
         resp = requests.delete(f"{BASE_URL}/vector_memory", json={"text": text})
         print(resp.json())
-    elif choice == "13":
-        resp = requests.post(f"{BASE_URL}/ask_agent", json={"text": "狗狗現在情緒正常嗎？"})
-        print(resp.json())
     elif choice == "14":
         resp = requests.delete(f"{BASE_URL}/excluded_behaviors", json={"behavior": "趴睡"})
         print(resp.json())

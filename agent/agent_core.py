@@ -44,7 +44,7 @@ class PetCareAgent:
 
         while not completed:
             related_memory = self.memory.search_similar_memory(str(observation))
-
+            print(related_memory)
             prompt_input = {
                 "input": f"觀察: {observation}\n相關記憶: {related_memory}",
                 "tools": "\n".join([f"- {tool.__name__}: {tool.__doc__}" for tool in get_toolkit()])
@@ -69,16 +69,8 @@ class PetCareAgent:
         final_output = self._extract_final_output_from_steps(full_steps)
         actions_taken = self._extract_actions_from_steps(full_steps)
 
-        ai_summary = (
-            f"本次觸發行為：{observation.get('action')}（地點：{observation.get('地點')}）\n"
-            f"執行行動：{actions_taken}\n"
-            f"最終回應：{final_output}"
-        )
-
-        self.summary_memory.add_user_message(str(observation))
-        self.summary_memory.add_ai_message(ai_summary)
-        self.memory.record_event(observation, actions_taken, effectiveness="待觀察")
-        self.summary_memory.get_summary()
+        # 儲存摘要/事件的工作丟到副線程做，不阻塞主流程
+        asyncio.create_task(self._async_memory_save(observation, final_output, actions_taken))
 
         return {
             "input": input_json,
