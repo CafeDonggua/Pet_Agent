@@ -24,7 +24,7 @@ class PetCareAgent:
         self.last_summary_text = ""
         self.summarizer = get_summarizer()
 
-    def run_with_log_window(self, log_list: List[Dict], current_time: str) -> Dict:
+    async def run_with_log_window(self, log_list: List[Dict], current_time: str) -> Dict:
         """
         從五分鐘 log 中摘要記憶，選定 current_time 起始 observation，依序推理。
         """
@@ -39,8 +39,8 @@ class PetCareAgent:
             f"{raw_summary}"
         )
 
-        response = self.summarizer.invoke(summary_prompt)
-        summary_text = response if isinstance(response, str) else str(response)
+        response = await self.summarizer.ainvoke(summary_prompt) #非同步呼叫，回傳 coroutine（可以 await）
+        summary_text = response.content.strip() if isinstance(response, str) else str(response)
 
         self.last_summary_text = summary_text.strip()
         self.summary_memory.add_user_message(self.last_summary_text)
@@ -51,9 +51,9 @@ class PetCareAgent:
         if not start_obs:
             return {"error": f"找不到 {current_time} 的 observation"}
 
-        return self.run(start_obs)
+        return await  self.run(start_obs)
 
-    def run(self, input_json: Dict) -> Dict:
+    async def run(self, input_json: Dict) -> Dict:
         """
         處理一筆 observation log，讓 LLM Agent 依據 GOAP 流程自主決策並執行行動。
         """

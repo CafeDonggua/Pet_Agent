@@ -22,7 +22,7 @@ while True:
 
     new_entry = {
         "time": time_cursor.strftime("%Y%m%d%H%M%S"),
-        "action": "步行",
+        "action": "休息",
         "地點": "客廳"
     }
     logs.append(new_entry)
@@ -35,4 +35,4 @@ while True:
     # 時間往後推5秒
     time_cursor += timedelta(seconds=5)
 
-    time.sleep(10)
+    time.sleep(0.1)

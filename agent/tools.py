@@ -22,7 +22,7 @@ def switch_status(new_status: str) -> str:
     更改目前的預警狀態。
 
     Args:
-      new_status (str): 目標狀態，應為 '一般'、'觀察' 或 '緊急'。
+      new_status (str): 目標狀態
 
     Returns:
       str: 狀態更改結果回應。

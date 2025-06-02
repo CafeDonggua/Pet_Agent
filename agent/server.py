@@ -1,21 +1,18 @@
 # agent/server.py
 
-from fastapi import Request
 import os
-import json
 import asyncio
 from agent.singleton_memory import vector_memory_instance as vm
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from agent.agent_core import PetCareAgent
 from agent.memory_manager import memory
-from agent.plan_manager import PlanManager
 from agent.singleton_plan import plan_manager_instance as plan_manager
 from agent.utils import load_input_json, store_agent_response
 from datetime import datetime, timedelta
-from pathlib import Path
 from agent.tools import check_daily_plan_conflict, add_plan_item
 from langchain_openai import ChatOpenAI
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI()
 
@@ -24,6 +21,9 @@ agent = PetCareAgent()
 
 # WebSocket 連線列表
 active_connections = []
+
+executor = ThreadPoolExecutor()
+
 
 # 讀取 Log 用的紀錄
 last_processed_index = 0
@@ -50,8 +50,7 @@ async def periodic_log_monitor():
             window_logs = [log for log in log_data if five_min_ago <= log["time"] <= current_time]
 
             if window_logs:
-                result = agent.run_with_log_window(window_logs, current_time)
-                await broadcast(result)
+                asyncio.create_task(process_window_logs(window_logs, current_time))
             else:
                 print("此時段無資料，跳過但仍推進時間")
 
@@ -61,39 +60,16 @@ async def periodic_log_monitor():
         except Exception as e:
             print(f"[Server Error] {str(e)}")
 
-        await asyncio.sleep(1)  # 每 5 分鐘執行一次
+        await asyncio.sleep(30)
 
+async def process_window_logs(logs, current_time):
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(executor, lambda: asyncio.run(agent.run_with_log_window(logs, current_time)))
 
-async def monitor_log_file():
-    """
-    背景任務：每5秒掃描一次 sample.json，偵測新的一筆 observation
-    """
-    global last_processed_index
-    while True:
-        await asyncio.sleep(5)
-        if not os.path.exists(LOG_FILE_PATH):
-            continue
+    store_agent_response(result, f"{OUTPUT_DIR}/output.json")
+    await broadcast(result)
 
-        try:
-            logs = load_input_json(LOG_FILE_PATH)
-            if last_processed_index < len(logs):
-                # 處理新的 observation
-                new_observation = logs[last_processed_index]
-                last_processed_index += 1
-
-                # 執行推理
-                result = await asyncio.to_thread(agent.run, new_observation)
-                print(result)
-                # 儲存 output
-                store_agent_response(result, f"{OUTPUT_DIR}/output.json")
-
-                # 推播給所有 WebSocket
-                await broadcast(result)
-
-        except Exception as e:
-            print("[Log Monitor Error]", e)
-
-
+# 啟動背景任務：監控 log.json 並推理
 @app.on_event("startup")
 async def startup_event():
     # 啟動背景任務
@@ -168,12 +144,23 @@ async def add_current_plan(item: dict):
 async def get_pet_state():
     return {"current_state": memory.get_current_state()}
 
+def format_recent_events(events: list) -> list:
+    formatted = []
+    for e in events:
+        trigger = e.get("trigger", {})
+        formatted.append({
+            "時間": trigger.get("time", ""),
+            "行為": trigger.get("action", ""),
+            "地點": trigger.get("地點", ""),
+            "採取行動": e.get("action", ""),
+        })
+    return formatted
 
 @app.get("/recent_records")
 async def get_recent_records():
-    # 回傳最近 10 筆行為紀錄
     events = memory.memory.get("events", [])
-    return JSONResponse(content=events[-10:])
+    formatted = format_recent_events(events[-10:])
+    return JSONResponse(content=formatted)
 
 
 @app.get("/excluded_behaviors")
@@ -281,6 +268,14 @@ async def delete_vector_memory(item: dict):
 
     return {"status": f"已刪除 {len(to_delete)} 筆記憶", "text": text}
 
+import re
+
+def extract_clean_text(raw: str) -> str:
+    # 清除 "content='...'" 的 wrapper
+    match = re.search(r"content='(.*?)'", raw)
+    if match:
+        return match.group(1)
+    return raw.strip().split(" additional_kwargs")[0]  # 最保險
 
 @app.post("/ask_agent")
 async def ask_agent(item: dict):
@@ -290,7 +285,9 @@ async def ask_agent(item: dict):
 
     # 1. 查詢 FAISS 記憶
     results = vm.query_memory(text, top_k=5)
-    context = "\n".join([f"- {r['text']}" for r in results]) or "（目前無可參考的記憶）"
+    context = "\n".join([f"- {extract_clean_text(r['text'])}" for r in results]) or "（目前無可參考的記憶）"
+
+    #context = "\n".join([f"- {r['text']}" for r in results]) or "（目前無可參考的記憶）"
     # 2. 組 prompt 給模型
     prompt = f"""你是一個了解狗狗行為的助理。根據以下記憶片段，回答問題：
 記憶內容：
@@ -303,7 +300,10 @@ async def ask_agent(item: dict):
     chat = ChatOpenAI(model="gpt-4o-mini", temperature=0.5, api_key=os.getenv("OPENAI_CHAT_KEY"))
     answer = chat.invoke(prompt).content
 
-    return {"answer": answer, "reference": context}
+    # 格式化結果
+    formatted = f"Agent: {answer}\n\n參考記憶：\n{context}"
+
+    return {"answer": formatted}
 
 
 # ------------------- End -------------------
